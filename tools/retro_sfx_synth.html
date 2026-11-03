@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro SFX & UI Synth — Procedural Audio Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            main: '#0a0a0a',
+                            panel: '#121212',
+                            card: '#181818',
+                            hover: '#242424',
+                            border: '#262626',
+                            text: '#ededed',
+                            muted: '#888888'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
+        input[type="range"] { accent-color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-brand-main text-brand-text h-screen flex flex-col font-sans overflow-hidden select-none">
+
+    <!-- TOP BAR -->
+    <header class="h-16 bg-brand-panel border-b border-brand-border px-5 flex items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <span class="material-symbols-outlined text-[20px]">graphic_eq</span>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-sm font-semibold text-white">Retro Sound & UI SFX Synth</h1>
+                    <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">WebAudio PCM</span>
+                </div>
+                <p class="text-[11px] text-brand-muted">Sintetizzatore procedurale basato su Seed con esportazione .WAV nativa</p>
+            </div>
+        </div>
+
+        <!-- Seed Box -->
+        <div class="flex items-center gap-2 flex-1 max-w-md">
+            <div class="flex items-center flex-1 bg-black border border-brand-border rounded-lg overflow-hidden focus-within:border-amber-500">
+                <span class="px-3 py-1.5 text-xs font-mono text-brand-muted bg-brand-card border-r border-brand-border">SEED</span>
+                <input id="seed-input" type="text" value="COIN-1985" class="w-full bg-transparent px-3 py-1.5 text-sm font-mono text-amber-400 focus:outline-none" spellcheck="false">
+            </div>
+            <button onclick="applySeedFromInput()" class="px-3 py-2 bg-brand-card hover:bg-brand-hover border border-brand-border rounded-lg text-xs font-medium text-white transition-colors">
+                Genera da Seed
+            </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2">
+            <button onclick="playCurrentSound()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-lg shadow-amber-500/10 transition-all">
+                <span class="material-symbols-outlined text-[18px]">volume_up</span>
+                <span>Riproduci</span>
+            </button>
+            <button onclick="downloadWav()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                <span>Scarica .WAV</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 flex min-h-0 overflow-hidden">
+        
+        <!-- LEFT SIDEBAR: Archetype Presets -->
+        <aside class="w-64 bg-brand-panel border-r border-brand-border p-4 flex flex-col gap-2 overflow-y-auto shrink-0">
+            <div class="text-[11px] font-mono uppercase tracking-wider text-brand-muted mb-1">Archetipi Sonori</div>
+            
+            <button onclick="triggerPreset('coin')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-amber-400">monetization_on</span>
+                <div>
+                    <div class="text-white">Moneta / Pickup</div>
+                    <div class="text-[10px] text-brand-muted">Doppio salto armonico</div>
+                </div>
+            </button>
+
+            <button onclick="triggerPreset('laser')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-cyan-400">bolt</span>
+                <div>
+                    <div class="text-white">Laser / Blaster</div>
+                    <div class="text-[10px] text-brand-muted">Sweep discendente rapido</div>
+                </div>
+            </button>
+
+            <button onclick="triggerPreset('explosion')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-red-400">local_fire_department</span>
+                <div>
+                    <div class="text-white">Esplosione 8-Bit</div>
+                    <div class="text-[10px] text-brand-muted">Rumore bianco + sub-bass</div>
+                </div>
+            </button>
+
+            <button onclick="triggerPreset('powerup')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-emerald-400">auto_awesome</span>
+                <div>
+                    <div class="text-white">Power-Up</div>
+                    <div class="text-[10px] text-brand-muted">Arpeggio ascendente</div>
+                </div>
+            </button>
+
+            <button onclick="triggerPreset('jump')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-indigo-400">trending_up</span>
+                <div>
+                    <div class="text-white">Salto Platform</div>
+                    <div class="text-[10px] text-brand-muted">Onda quadra elastica</div>
+                </div>
+            </button>
+
+            <button onclick="triggerPreset('hit')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-rose-400">gavel</span>
+                <div>
+                    <div class="text-white">Danno / Impatto</div>
+                    <div class="text-[10px] text-brand-muted">Crunch distorsione breve</div>
+                </div>
+            </button>
+
+            <button onclick="triggerPreset('ui')" class="w-full text-left px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border flex items-center gap-2.5 text-xs font-medium transition-colors">
+                <span class="material-symbols-outlined text-purple-400">notifications_active</span>
+                <div>
+                    <div class="text-white">Notifica App / UI</div>
+                    <div class="text-[10px] text-brand-muted"> cristallino per Electron</div>
+                </div>
+            </button>
+
+            <hr class="border-brand-border my-2">
+
+            <button onclick="mutateCurrent()" class="w-full px-3 py-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 flex items-center justify-center gap-2 text-xs font-semibold transition-colors">
+                <span class="material-symbols-outlined">science</span>
+                <span>Muta Leggermente</span>
+            </button>
+
+            <button onclick="randomizeAll()" class="w-full px-3 py-2.5 rounded-lg bg-brand-card hover:bg-brand-hover border border-brand-border text-white flex items-center justify-center gap-2 text-xs font-semibold transition-colors">
+                <span class="material-symbols-outlined">casino</span>
+                <span>Caos Totale</span>
+            </button>
+        </aside>
+
+        <!-- CENTER/RIGHT: Oscilloscope + Sliders -->
+        <main class="flex-1 flex flex-col p-6 gap-6 overflow-y-auto">
+            
+            <!-- Oscilloscope Visualizer -->
+            <div class="bg-brand-panel border border-brand-border rounded-xl p-4 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span class="text-xs font-mono uppercase text-brand-muted">Oscilloscopio Forma d'Onda PCM (44.1 kHz)</span>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs font-mono">
+                        <span id="stat-duration" class="text-amber-400">0.35s</span>
+                        <span id="stat-samples" class="text-brand-muted">15,435 samples</span>
+                    </div>
+                </div>
+                <div class="h-44 w-full bg-black rounded-lg border border-brand-border overflow-hidden relative">
+                    <canvas id="wave-canvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Synth Parameters Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                
+                <!-- 1. Oscillatore & Timbro -->
+                <div class="bg-brand-panel border border-brand-border rounded-xl p-4 space-y-4">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">waves</span>
+                        1. Oscillatore & Timbro
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-brand-muted block mb-1.5">Forma d'Onda</label>
+                        <select id="p-wave" onchange="updateAndPlay()" class="w-full bg-black border border-brand-border rounded-lg px-3 py-2 text-xs text-white outline-none">
+                            <option value="square">Square (8-Bit Classico NES)</option>
+                            <option value="sawtooth">Sawtooth (Synth Brass / Laser)</option>
+                            <option value="sine">Sine (Puro / UI Moderna)</option>
+                            <option value="triangle">Triangle (Flauto / Basso 8-Bit)</option>
+                            <option value="noise">White Noise (Esplosioni / Percussioni)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Frequenza Base</span>
+                            <span id="lbl-freq" class="font-mono text-white">440 Hz</span>
+                        </div>
+                        <input id="p-freq" type="range" min="60" max="2400" step="1" value="660" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Pitch Slide (Glissando)</span>
+                            <span id="lbl-slide" class="font-mono text-white">0</span>
+                        </div>
+                        <input id="p-slide" type="range" min="-1" max="1" step="0.02" value="0.25" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Salto Armonico (Arpeggio)</span>
+                            <span id="lbl-arp" class="font-mono text-white">+0.5</span>
+                        </div>
+                        <input id="p-arp" type="range" min="-1" max="1" step="0.05" value="0.5" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+                </div>
+
+                <!-- 2. Invilluppo ADSR -->
+                <div class="bg-brand-panel border border-brand-border rounded-xl p-4 space-y-4">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">timeline</span>
+                        2. Inviluppo (Volume nel Tempo)
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Attack (Attacco)</span>
+                            <span id="lbl-attack" class="font-mono text-white">0.01s</span>
+                        </div>
+                        <input id="p-attack" type="range" min="0" max="0.4" step="0.005" value="0.01" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Sustain (Tenuta)</span>
+                            <span id="lbl-sustain" class="font-mono text-white">0.12s</span>
+                        </div>
+                        <input id="p-sustain" type="range" min="0.02" max="0.8" step="0.01" value="0.12" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Decay (Rilascio)</span>
+                            <span id="lbl-decay" class="font-mono text-white">0.25s</span>
+                        </div>
+                        <input id="p-decay" type="range" min="0.02" max="1.2" step="0.01" value="0.25" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Sustain Punch</span>
+                            <span id="lbl-punch" class="font-mono text-white">30%</span>
+                        </div>
+                        <input id="p-punch" type="range" min="0" max="1" step="0.05" value="0.3" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+                </div>
+
+                <!-- 3. Modulazione & Effetti -->
+                <div class="bg-brand-panel border border-brand-border rounded-xl p-4 space-y-4">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">tune</span>
+                        3. Modulazione & Filtro
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Vibrato Depth</span>
+                            <span id="lbl-vibd" class="font-mono text-white">0%</span>
+                        </div>
+                        <input id="p-vibd" type="range" min="0" max="0.6" step="0.02" value="0" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Vibrato Speed</span>
+                            <span id="lbl-vibs" class="font-mono text-white">12 Hz</span>
+                        </div>
+                        <input id="p-vibs" type="range" min="2" max="40" step="1" value="12" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Bitcrush / Quantizzazione</span>
+                            <span id="lbl-crush" class="font-mono text-white">0%</span>
+                        </div>
+                        <input id="p-crush" type="range" min="0" max="0.9" step="0.05" value="0" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-brand-muted">Volume Master</span>
+                            <span id="lbl-vol" class="font-mono text-white">70%</span>
+                        </div>
+                        <input id="p-vol" type="range" min="0.1" max="1" step="0.05" value="0.7" oninput="syncLabels(); renderWaveformOnly()" onchange="playCurrentSound()" class="w-full">
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // PRNG Deterministico (cyrb128 + mulberry32)
+        function cyrb128(str) {
+            let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+            for (let i = 0, k; i < str.length; i++) {
+                k = str.charCodeAt(i);
+                h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+                h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+                h3 = h4 ^ Math.imul(h3 ^ k, 951274293);
+                h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+            }
+            return (h1^h2^h3^h4) >>> 0;
+        }
+        function mulberry32(a) {
+            return function() {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        let audioCtx = null;
+        let currentSamples = new Float32Array(0);
+        const SAMPLE_RATE = 44100;
+
+        function getParams() {
+            return {
+                wave: document.getElementById('p-wave').value,
+                freq: parseFloat(document.getElementById('p-freq').value),
+                slide: parseFloat(document.getElementById('p-slide').value),
+                arp: parseFloat(document.getElementById('p-arp').value),
+                attack: parseFloat(document.getElementById('p-attack').value),
+                sustain: parseFloat(document.getElementById('p-sustain').value),
+                decay: parseFloat(document.getElementById('p-decay').value),
+                punch: parseFloat(document.getElementById('p-punch').value),
+                vibDepth: parseFloat(document.getElementById('p-vibd').value),
+                vibSpeed: parseFloat(document.getElementById('p-vibs').value),
+                crush: parseFloat(document.getElementById('p-crush').value),
+                vol: parseFloat(document.getElementById('p-vol').value)
+            };
+        }
+
+        function setParams(p) {
+            if (p.wave) document.getElementById('p-wave').value = p.wave;
+            if (p.freq !== undefined) document.getElementById('p-freq').value = p.freq;
+            if (p.slide !== undefined) document.getElementById('p-slide').value = p.slide;
+            if (p.arp !== undefined) document.getElementById('p-arp').value = p.arp;
+            if (p.attack !== undefined) document.getElementById('p-attack').value = p.attack;
+            if (p.sustain !== undefined) document.getElementById('p-sustain').value = p.sustain;
+            if (p.decay !== undefined) document.getElementById('p-decay').value = p.decay;
+            if (p.punch !== undefined) document.getElementById('p-punch').value = p.punch;
+            if (p.vibDepth !== undefined) document.getElementById('p-vibd').value = p.vibDepth;
+            if (p.vibSpeed !== undefined) document.getElementById('p-vibs').value = p.vibSpeed;
+            if (p.crush !== undefined) document.getElementById('p-crush').value = p.crush;
+            syncLabels();
+        }
+
+        function syncLabels() {
+            const p = getParams();
+            document.getElementById('lbl-freq').textContent = `${Math.round(p.freq)} Hz`;
+            document.getElementById('lbl-slide').textContent = p.slide.toFixed(2);
+            document.getElementById('lbl-arp').textContent = (p.arp >= 0 ? '+' : '') + p.arp.toFixed(2);
+            document.getElementById('lbl-attack').textContent = `${p.attack.toFixed(3)}s`;
+            document.getElementById('lbl-sustain').textContent = `${p.sustain.toFixed(2)}s`;
+            document.getElementById('lbl-decay').textContent = `${p.decay.toFixed(2)}s`;
+            document.getElementById('lbl-punch').textContent = `${Math.round(p.punch * 100)}%`;
+            document.getElementById('lbl-vibd').textContent = `${Math.round(p.vibDepth * 100)}%`;
+            document.getElementById('lbl-vibs').textContent = `${Math.round(p.vibSpeed)} Hz`;
+            document.getElementById('lbl-crush').textContent = `${Math.round(p.crush * 100)}%`;
+            document.getElementById('lbl-vol').textContent = `${Math.round(p.vol * 100)}%`;
+        }
+
+        // Sintetizza l'array PCM Float32
+        function synthesizePCM() {
+            const p = getParams();
+            const totalDuration = Math.max(0.05, p.attack + p.sustain + p.decay);
+            const numSamples = Math.floor(totalDuration * SAMPLE_RATE);
+            const buffer = new Float32Array(numSamples);
+
+            let phase = 0;
+            let noiseVal = 0;
+            const arpStepSample = Math.floor(numSamples * 0.38);
+
+            for (let i = 0; i < numSamples; i++) {
+                const t = i / SAMPLE_RATE;
+                const progress = i / numSamples;
+
+                // 1. Calcolo Invilluppo ADSR
+                let env = 1;
+                if (t < p.attack) {
+                    env = t / Math.max(0.001, p.attack);
+                } else if (t < p.attack + p.sustain) {
+                    const susProg = (t - p.attack) / Math.max(0.001, p.sustain);
+                    env = 1 + (1 - susProg) * p.punch * 0.8;
+                } else {
+                    const decProg = (t - p.attack - p.sustain) / Math.max(0.001, p.decay);
+                    env = Math.max(0, 1 - decProg);
+                }
+
+                // 2. Frequenza istantanea + Slide + Arpeggio + Vibrato
+                let freq = p.freq * Math.pow(2, p.slide * progress * 2.2);
+                if (i > arpStepSample && p.arp !== 0) {
+                    freq *= Math.pow(2, p.arp);
+                }
+                if (p.vibDepth > 0) {
+                    freq *= 1 + Math.sin(2 * Math.PI * p.vibSpeed * t) * p.vibDepth * 0.25;
+                }
+                freq = Math.max(20, Math.min(12000, freq));
+
+                // 3. Avanzamento fase e generazione forma d'onda
+                phase += freq / SAMPLE_RATE;
+                const ph = phase - Math.floor(phase);
+
+                let sample = 0;
+                if (p.wave === 'square') {
+                    sample = ph < 0.5 ? 0.8 : -0.8;
+                } else if (p.wave === 'sawtooth') {
+                    sample = 2 * ph - 1;
+                } else if (p.wave === 'sine') {
+                    sample = Math.sin(2 * Math.PI * ph);
+                } else if (p.wave === 'triangle') {
+                    sample = 1 - 4 * Math.abs(Math.round(ph - 0.25) - (ph - 0.25));
+                } else if (p.wave === 'noise') {
+                    // Rumore con hold dipendente dalla frequenza
+                    const hold = Math.max(1, Math.floor(SAMPLE_RATE / (freq * 4)));
+                    if (i % hold === 0) noiseVal = Math.random() * 2 - 1;
+                    sample = noiseVal;
+                }
+
+                // 4. Bitcrusher opzionale
+                if (p.crush > 0) {
+                    const steps = Math.max(2, Math.floor((1 - p.crush) * 32));
+                    sample = Math.round(sample * steps) / steps;
+                }
+
+                buffer[i] = Math.max(-1, Math.min(1, sample * env * p.vol));
+            }
+
+            currentSamples = buffer;
+            document.getElementById('stat-duration').textContent = `${totalDuration.toFixed(2)}s`;
+            document.getElementById('stat-samples').textContent = `${numSamples.toLocaleString()} samples`;
+            drawOscilloscope(buffer);
+            return buffer;
+        }
+
+        function drawOscilloscope(samples) {
+            const canvas = document.getElementById('wave-canvas');
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            const w = rect.width;
+            const h = rect.height;
+
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, w, h);
+
+            // Griglia centrale
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, h / 2);
+            ctx.lineTo(w, h / 2);
+            ctx.stroke();
+
+            if (!samples || samples.length === 0) return;
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const step = Math.max(1, Math.floor(samples.length / w));
+            for (let x = 0; x < w; x++) {
+                const idx = Math.min(samples.length - 1, Math.floor((x / w) * samples.length));
+                // Cerca picco locale nella finestra
+                let min = 1, max = -1;
+                for (let j = 0; j < step && (idx + j) < samples.length; j++) {
+                    const val = samples[idx + j];
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                }
+                const y1 = (1 - max * 0.85) * (h / 2);
+                const y2 = (1 - min * 0.85) * (h / 2);
+                if (x === 0) ctx.moveTo(x, y1);
+                ctx.lineTo(x, y1);
+                ctx.lineTo(x, y2);
+            }
+            ctx.stroke();
+        }
+
+        function renderWaveformOnly() {
+            synthesizePCM();
+        }
+
+        function playCurrentSound() {
+            const samples = synthesizePCM();
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const audioBuffer = audioCtx.createBuffer(1, samples.length, SAMPLE_RATE);
+            audioBuffer.copyToChannel(samples, 0);
+
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioCtx.destination);
+            source.start();
+        }
+
+        function updateAndPlay() {
+            syncLabels();
+            playCurrentSound();
+        }
+
+        // Preset generatori
+        function triggerPreset(type) {
+            const rnd = () => Math.random();
+            document.getElementById('seed-input').value = `${type.toUpperCase()}-${Math.floor(100 + rnd()*899)}`;
+
+            if (type === 'coin') {
+                setParams({
+                    wave: 'square',
+                    freq: 520 + rnd() * 380,
+                    slide: 0,
+                    arp: 0.45 + rnd() * 0.35,
+                    attack: 0,
+                    sustain: 0.07 + rnd() * 0.06,
+                    decay: 0.22 + rnd() * 0.15,
+                    punch: 0.4 + rnd() * 0.3,
+                    vibDepth: 0,
+                    crush: 0
+                });
+            } else if (type === 'laser') {
+                setParams({
+                    wave: rnd() > 0.4 ? 'sawtooth' : 'square',
+                    freq: 700 + rnd() * 700,
+                    slide: -0.55 - rnd() * 0.4,
+                    arp: 0,
+                    attack: 0,
+                    sustain: 0.08 + rnd() * 0.1,
+                    decay: 0.12 + rnd() * 0.15,
+                    punch: 0.2,
+                    vibDepth: rnd() > 0.6 ? 0.15 : 0,
+                    crush: 0
+                });
+            } else if (type === 'explosion') {
+                setParams({
+                    wave: 'noise',
+                    freq: 120 + rnd() * 260,
+                    slide: -0.35 - rnd() * 0.35,
+                    arp: 0,
+                    attack: 0.01,
+                    sustain: 0.15 + rnd() * 0.15,
+                    decay: 0.45 + rnd() * 0.45,
+                    punch: 0.65,
+                    vibDepth: 0,
+                    crush: 0.25
+                });
+            } else if (type === 'powerup') {
+                setParams({
+                    wave: rnd() > 0.5 ? 'sawtooth' : 'triangle',
+                    freq: 320 + rnd() * 250,
+                    slide: 0.45 + rnd() * 0.4,
+                    arp: 0.35,
+                    attack: 0.01,
+                    sustain: 0.2 + rnd() * 0.15,
+                    decay: 0.3 + rnd() * 0.2,
+                    punch: 0.2,
+                    vibDepth: 0.22,
+                    vibSpeed: 18,
+                    crush: 0
+                });
+            } else if (type === 'jump') {
+                setParams({
+                    wave: 'square',
+                    freq: 260 + rnd() * 200,
+                    slide: 0.35 + rnd() * 0.35,
+                    arp: 0,
+                    attack: 0,
+                    sustain: 0.1 + rnd() * 0.08,
+                    decay: 0.15 + rnd() * 0.1,
+                    punch: 0.15,
+                    vibDepth: 0,
+                    crush: 0
+                });
+            } else if (type === 'hit') {
+                setParams({
+                    wave: rnd() > 0.5 ? 'noise' : 'sawtooth',
+                    freq: 180 + rnd() * 220,
+                    slide: -0.6 - rnd() * 0.3,
+                    arp: 0,
+                    attack: 0,
+                    sustain: 0.04 + rnd() * 0.05,
+                    decay: 0.12 + rnd() * 0.1,
+                    punch: 0.7,
+                    vibDepth: 0,
+                    crush: 0.35
+                });
+            } else if (type === 'ui') {
+                setParams({
+                    wave: 'sine',
+                    freq: 680 + rnd() * 420,
+                    slide: 0,
+                    arp: 0.35,
+                    attack: 0.005,
+                    sustain: 0.06,
+                    decay: 0.18,
+                    punch: 0.25,
+                    vibDepth: 0,
+                    crush: 0
+                });
+            }
+            playCurrentSound();
+        }
+
+        function applySeedFromInput() {
+            const seedStr = document.getElementById('seed-input').value.trim() || 'STRAT-SFX';
+            const rng = mulberry32(cyrb128(seedStr));
+            const waves = ['square', 'sawtooth', 'sine', 'triangle', 'noise'];
+            setParams({
+                wave: waves[Math.floor(rng() * waves.length)],
+                freq: Math.floor(140 + rng() * 1100),
+                slide: parseFloat(((rng() * 1.6) - 0.8).toFixed(2)),
+                arp: rng() > 0.45 ? parseFloat(((rng() * 1.2) - 0.4).toFixed(2)) : 0,
+                attack: parseFloat((rng() * 0.06).toFixed(3)),
+                sustain: parseFloat((0.05 + rng() * 0.25).toFixed(2)),
+                decay: parseFloat((0.1 + rng() * 0.45).toFixed(2)),
+                punch: parseFloat((rng() * 0.6).toFixed(2)),
+                vibDepth: rng() > 0.65 ? parseFloat((rng() * 0.35).toFixed(2)) : 0,
+                vibSpeed: Math.floor(6 + rng() * 24),
+                crush: rng() > 0.75 ? parseFloat((rng() * 0.5).toFixed(2)) : 0
+            });
+            playCurrentSound();
+        }
+
+        function mutateCurrent() {
+            const p = getParams();
+            const jit = (v, amt, min, max) => Math.max(min, Math.min(max, v + (Math.random() * 2 - 1) * amt));
+            setParams({
+                freq: jit(p.freq, 80, 60, 2400),
+                slide: jit(p.slide, 0.12, -1, 1),
+                arp: jit(p.arp, 0.1, -1, 1),
+                sustain: jit(p.sustain, 0.04, 0.02, 0.8),
+                decay: jit(p.decay, 0.05, 0.02, 1.2)
+            });
+            playCurrentSound();
+        }
+
+        function randomizeAll() {
+            document.getElementById('seed-input').value = `CHAOS-${Math.floor(1000 + Math.random() * 9000)}`;
+            applySeedFromInput();
+        }
+
+        // Esportazione WAV 16-bit PCM nativa
+        function downloadWav() {
+            const samples = currentSamples.length ? currentSamples : synthesizePCM();
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+
+            const writeStr = (offset, str) => {
+                for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+            };
+
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // Mono
+            view.setUint32(24, SAMPLE_RATE, true);
+            view.setUint32(28, SAMPLE_RATE * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, samples.length * 2, true);
+
+            let offset = 44;
+            for (let i = 0; i < samples.length; i++, offset += 2) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const seedName = (document.getElementById('seed-input').value || 'sfx').toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+            a.href = url;
+            a.download = `sfx-${seedName}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        window.addEventListener('resize', () => drawOscilloscope(currentSamples));
+        window.addEventListener('DOMContentLoaded', () => {
+            syncLabels();
+            synthesizePCM();
+        });
+    </script>
+</body>
+</html>
