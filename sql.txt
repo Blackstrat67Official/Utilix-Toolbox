@@ -1,0 +1,341 @@
+WITH RECURSIVE
+date_series AS (
+    SELECT
+        DATE_TRUNC('month', MIN(o.created_at)) AS month_start
+    FROM orders o
+
+    UNION ALL
+
+    SELECT month_start + INTERVAL '1 month'
+    FROM date_series
+    WHERE month_start + INTERVAL '1 month'
+          <= DATE_TRUNC('month', CURRENT_DATE)
+),
+
+customer_hierarchy AS (
+    SELECT
+        c.id AS customer_id,
+        c.id AS root_customer_id,
+        c.referrer_id,
+        0 AS referral_depth,
+        ARRAY[c.id] AS referral_path
+    FROM customers c
+    WHERE c.referrer_id IS NULL
+
+    UNION ALL
+
+    SELECT
+        child.id,
+        parent.root_customer_id,
+        child.referrer_id,
+        parent.referral_depth + 1,
+        parent.referral_path || child.id
+    FROM customers child
+    JOIN customer_hierarchy parent
+        ON child.referrer_id = parent.customer_id
+    WHERE NOT child.id = ANY(parent.referral_path)
+),
+
+order_details AS (
+    SELECT
+        o.id AS order_id,
+        o.customer_id,
+        o.created_at,
+        o.status,
+        o.currency,
+        COALESCE(
+            SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct / 100.0)),
+            0
+        ) AS subtotal,
+        COUNT(DISTINCT oi.product_id) AS distinct_products,
+        SUM(oi.quantity) AS total_items,
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN r.status = 'approved'
+                    THEN r.quantity * oi.unit_price
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS refunded_amount
+    FROM orders o
+    LEFT JOIN order_items oi
+        ON oi.order_id = o.id
+    LEFT JOIN returns r
+        ON r.order_item_id = oi.id
+    GROUP BY
+        o.id,
+        o.customer_id,
+        o.created_at,
+        o.status,
+        o.currency
+),
+
+customer_metrics AS (
+    SELECT
+        c.id AS customer_id,
+        c.email,
+        c.country,
+        c.created_at AS registration_date,
+        COUNT(od.order_id) FILTER (
+            WHERE od.status = 'completed'
+        ) AS completed_orders,
+        COALESCE(
+            SUM(od.subtotal - od.refunded_amount) FILTER (
+                WHERE od.status = 'completed'
+            ),
+            0
+        ) AS lifetime_value,
+        AVG(od.subtotal) FILTER (
+            WHERE od.status = 'completed'
+        ) AS average_order_value,
+        MAX(od.created_at) FILTER (
+            WHERE od.status = 'completed'
+        ) AS last_order_at,
+        PERCENT_RANK() OVER (
+            PARTITION BY c.country
+            ORDER BY COUNT(od.order_id) FILTER (
+                WHERE od.status = 'completed'
+            )
+        ) AS country_order_percentile
+    FROM customers c
+    LEFT JOIN order_details od
+        ON od.customer_id = c.id
+    GROUP BY
+        c.id,
+        c.email,
+        c.country,
+        c.created_at
+),
+
+monthly_revenue AS (
+    SELECT
+        DATE_TRUNC('month', od.created_at) AS month,
+        od.currency,
+        SUM(od.subtotal - od.refunded_amount) AS net_revenue,
+        COUNT(DISTINCT od.order_id) AS order_count,
+        COUNT(DISTINCT od.customer_id) AS unique_customers,
+        AVG(od.subtotal) AS average_order_value
+    FROM order_details od
+    WHERE od.status = 'completed'
+    GROUP BY
+        DATE_TRUNC('month', od.created_at),
+        od.currency
+),
+
+revenue_growth AS (
+    SELECT
+        mr.*,
+        LAG(mr.net_revenue) OVER (
+            PARTITION BY mr.currency
+            ORDER BY mr.month
+        ) AS previous_month_revenue,
+        mr.net_revenue - LAG(mr.net_revenue) OVER (
+            PARTITION BY mr.currency
+            ORDER BY mr.month
+        ) AS absolute_growth,
+        ROUND(
+            100.0 * (
+                mr.net_revenue
+                - LAG(mr.net_revenue) OVER (
+                    PARTITION BY mr.currency
+                    ORDER BY mr.month
+                )
+            ) / NULLIF(
+                LAG(mr.net_revenue) OVER (
+                    PARTITION BY mr.currency
+                    ORDER BY mr.month
+                ),
+                0
+            ),
+            2
+        ) AS percentage_growth
+    FROM monthly_revenue mr
+),
+
+product_performance AS (
+    SELECT
+        p.id AS product_id,
+        p.name AS product_name,
+        p.category_id,
+        COALESCE(SUM(oi.quantity), 0) AS units_sold,
+        COALESCE(
+            SUM(oi.quantity * oi.unit_price),
+            0
+        ) AS gross_sales,
+        COUNT(DISTINCT oi.order_id) AS order_frequency,
+        AVG(rv.rating) AS average_rating,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (
+            ORDER BY oi.unit_price
+        ) AS price_95th_percentile
+    FROM products p
+    LEFT JOIN order_items oi
+        ON oi.product_id = p.id
+    LEFT JOIN reviews rv
+        ON rv.product_id = p.id
+    GROUP BY
+        p.id,
+        p.name,
+        p.category_id
+),
+
+category_rankings AS (
+    SELECT
+        pp.*,
+        DENSE_RANK() OVER (
+            PARTITION BY pp.category_id
+            ORDER BY pp.gross_sales DESC
+        ) AS category_sales_rank,
+        NTILE(10) OVER (
+            ORDER BY pp.units_sold DESC
+        ) AS sales_decile
+    FROM product_performance pp
+),
+
+payment_reconciliation AS (
+    SELECT
+        p.order_id,
+        COUNT(*) AS payment_attempts,
+        SUM(
+            CASE
+                WHEN p.status = 'successful'
+                THEN p.amount
+                ELSE 0
+            END
+        ) AS successful_payment_amount,
+        BOOL_AND(
+            p.status IN ('successful', 'refunded', 'cancelled')
+        ) AS all_attempts_finalized
+    FROM payments p
+    GROUP BY p.order_id
+),
+
+shipment_metrics AS (
+    SELECT
+        s.order_id,
+        COUNT(*) AS shipment_count,
+        AVG(
+            EXTRACT(EPOCH FROM (s.delivered_at - s.shipped_at)) / 86400.0
+        ) FILTER (
+            WHERE s.delivered_at IS NOT NULL
+        ) AS average_delivery_days,
+        BOOL_OR(
+            s.delivered_at > s.estimated_delivery_at
+        ) AS has_late_delivery
+    FROM shipments s
+    GROUP BY s.order_id
+),
+
+final_customer_analysis AS (
+    SELECT
+        cm.*,
+        ch.root_customer_id,
+        ch.referral_depth,
+        COALESCE(
+            JSONB_AGG(
+                DISTINCT JSONB_BUILD_OBJECT(
+                    'order_id', od.order_id,
+                    'date', od.created_at,
+                    'net_amount', od.subtotal - od.refunded_amount,
+                    'items', od.total_items,
+                    'products', od.distinct_products,
+                    'payment_attempts', pr.payment_attempts,
+                    'delivery_days', sm.average_delivery_days,
+                    'late_delivery', sm.has_late_delivery
+                )
+            ) FILTER (
+                WHERE od.order_id IS NOT NULL
+            ),
+            '[]'::JSONB
+        ) AS order_history,
+        COALESCE(
+            SUM(od.subtotal - od.refunded_amount) FILTER (
+                WHERE od.status = 'completed'
+                  AND od.created_at >= CURRENT_DATE - INTERVAL '90 days'
+            ),
+            0
+        ) AS revenue_last_90_days,
+        COUNT(od.order_id) FILTER (
+            WHERE od.status = 'cancelled'
+        ) AS cancelled_orders,
+        AVG(sm.average_delivery_days) AS avg_delivery_days,
+        BOOL_OR(sm.has_late_delivery) AS any_late_delivery
+    FROM customer_metrics cm
+    LEFT JOIN customer_hierarchy ch
+        ON ch.customer_id = cm.customer_id
+    LEFT JOIN order_details od
+        ON od.customer_id = cm.customer_id
+    LEFT JOIN payment_reconciliation pr
+        ON pr.order_id = od.order_id
+    LEFT JOIN shipment_metrics sm
+        ON sm.order_id = od.order_id
+    GROUP BY
+        cm.customer_id,
+        cm.email,
+        cm.country,
+        cm.registration_date,
+        cm.completed_orders,
+        cm.lifetime_value,
+        cm.average_order_value,
+        cm.last_order_at,
+        cm.country_order_percentile,
+        ch.root_customer_id,
+        ch.referral_depth
+)
+
+SELECT
+    fca.customer_id,
+    fca.email,
+    fca.country,
+    fca.registration_date,
+    fca.completed_orders,
+    ROUND(fca.lifetime_value::NUMERIC, 2) AS lifetime_value,
+    ROUND(fca.average_order_value::NUMERIC, 2) AS average_order_value,
+    ROUND(fca.revenue_last_90_days::NUMERIC, 2) AS revenue_last_90_days,
+    fca.cancelled_orders,
+    fca.last_order_at,
+    fca.root_customer_id,
+    fca.referral_depth,
+    ROUND(
+        fca.country_order_percentile::NUMERIC,
+        4
+    ) AS country_order_percentile,
+    ROUND(
+        fca.avg_delivery_days::NUMERIC,
+        2
+    ) AS avg_delivery_days,
+    fca.any_late_delivery,
+    fca.order_history,
+    CASE
+        WHEN fca.lifetime_value >= PERCENTILE_CONT(0.95)
+            WITHIN GROUP (ORDER BY fca.lifetime_value)
+            OVER ()
+            THEN 'VIP'
+        WHEN fca.revenue_last_90_days > 1000
+            THEN 'HIGH_VALUE'
+        WHEN fca.last_order_at < CURRENT_DATE - INTERVAL '180 days'
+            OR fca.last_order_at IS NULL
+            THEN 'INACTIVE'
+        ELSE 'STANDARD'
+    END AS customer_segment,
+    ROUND(
+        100.0 * fca.cancelled_orders
+        / NULLIF(
+            fca.cancelled_orders + fca.completed_orders,
+            0
+        ),
+        2
+    ) AS cancellation_rate_pct
+FROM final_customer_analysis fca
+WHERE
+    fca.completed_orders > 0
+    AND (
+        fca.lifetime_value > 500
+        OR fca.revenue_last_90_days > 100
+    )
+ORDER BY
+    fca.lifetime_value DESC,
+    fca.revenue_last_90_days DESC,
+    fca.customer_id ASC
+LIMIT 500;

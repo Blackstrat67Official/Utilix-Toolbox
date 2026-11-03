@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Blob Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-container:#0a0a0a;--border:rgba(255,255,255,0.08);--accent:#b39ddb;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:#000;color:#fff;font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:900px;display:flex;}
+.controls{width:250px;padding:1.5rem;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:15px;background:#050505;}
+.preview{flex:1;display:flex;flex-direction:column;position:relative;align-items:center;justify-content:center;}
+.blob{width:250px;height:250px;background:linear-gradient(45deg, #b39ddb, #81d4fa);transition:border-radius 0.2s ease;}
+label{font-size:0.75rem;color:#aaa;display:flex;justify-content:space-between;} input[type=range]{width:100%;accent-color:var(--accent);}
+.code{position:absolute;bottom:0;width:100%;background:#000;padding:1rem;font-family:'JetBrains Mono',monospace;color:var(--accent);border-top:1px solid var(--border);text-align:center;}
+button{background:var(--accent);color:#000;border:none;padding:8px;border-radius:6px;cursor:pointer;font-weight:bold;margin-top:10px;}
+</style></head><body>
+<div class="container">
+    <div class="controls">
+        <div><label>Top</label><input type="range" id="t" min="0" max="100" value="50"></div>
+        <div><label>Right</label><input type="range" id="r" min="0" max="100" value="50"></div>
+        <div><label>Bottom</label><input type="range" id="b" min="0" max="100" value="50"></div>
+        <div><label>Left</label><input type="range" id="l" min="0" max="100" value="50"></div>
+        <button onclick="rnd()">Casuale</button>
+    </div>
+    <div class="preview"><div class="blob" id="blob"></div><div class="code" id="code"></div></div>
+</div>
+<script>
+    function update() {
+        const t=document.getElementById('t').value, r=document.getElementById('r').value, b=document.getElementById('b').value, l=document.getElementById('l').value;
+        const br = `${t}% ${100-t}% ${b}% ${100-b}% / ${l}% ${r}% ${100-r}% ${100-l}%`;
+        document.getElementById('blob').style.borderRadius = br;
+        document.getElementById('code').innerText = `border-radius: ${br};`;
+    }
+    function rnd(){ ['t','r','b','l'].forEach(id=>document.getElementById(id).value = Math.floor(Math.random()*70)+15); update(); }
+    ['t','r','b','l'].forEach(id => document.getElementById(id).addEventListener('input', update)); update();
+</script></body></html>

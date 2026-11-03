@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Cron Expression Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Libreria per tradurre le espressioni cron in linguaggio umano (con supporto italiano) -->
+    <script src="https://unpkg.com/cronstrue@2.47.0/dist/cronstrue-i18n.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #000000; --bg-container: #0a0a0a; --bg-element: #141414;
+            --bg-hover: #1f1f1f; --border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ededed; --text-secondary: #888888; --accent: #64b5f6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg-body); color: var(--text-primary); font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: stretch; height: 100vh; padding: 1.5rem; }
+        .container { background: var(--bg-container); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 900px; display: flex; flex-direction: column; overflow: hidden; }
+        .header { display: flex; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 1rem; font-weight: 500; }
+        
+        .content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; flex-grow: 1; }
+        
+        .output-box { background: var(--bg-element); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; text-align: center; }
+        .cron-string { font-family: 'JetBrains Mono', monospace; font-size: 2.5rem; color: var(--accent); font-weight: 600; margin-bottom: 0.5rem; letter-spacing: 4px; }
+        .cron-desc { color: var(--text-primary); font-size: 1rem; }
+        
+        .controls-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; }
+        .input-group input { background: transparent; color: var(--text-primary); border: 1px solid var(--border); padding: 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; outline: none; text-align: center; font-size: 1.1rem; }
+        .input-group input:focus { border-color: var(--accent); }
+        
+        .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+        .btn-preset { background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .btn-preset:hover { background: var(--bg-hover); border-color: var(--accent); color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h2>Cron Generator</h2></div>
+        
+        <div class="content">
+            <div class="output-box">
+                <div class="cron-string" id="cron-output">* * * * *</div>
+                <div class="cron-desc" id="cron-desc">Ogni minuto</div>
+            </div>
+            
+            <div class="controls-grid">
+                <div class="input-group">
+                    <label>Minuto (0-59)</label>
+                    <input type="text" id="cron-min" value="*">
+                </div>
+                <div class="input-group">
+                    <label>Ora (0-23)</label>
+                    <input type="text" id="cron-hour" value="*">
+                </div>
+                <div class="input-group">
+                    <label>Giorno (1-31)</label>
+                    <input type="text" id="cron-day" value="*">
+                </div>
+                <div class="input-group">
+                    <label>Mese (1-12)</label>
+                    <input type="text" id="cron-month" value="*">
+                </div>
+                <div class="input-group">
+                    <label>Settimana (0-6)</label>
+                    <input type="text" id="cron-week" value="*">
+                </div>
+            </div>
+            
+            <div>
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Preset Comuni:</label>
+                <div class="presets">
+                    <button class="btn-preset" onclick="setCron('*', '*', '*', '*', '*')">Ogni Minuto</button>
+                    <button class="btn-preset" onclick="setCron('0', '*', '*', '*', '*')">Ogni Ora</button>
+                    <button class="btn-preset" onclick="setCron('0', '0', '*', '*', '*')">Mezzanotte (Tutti i giorni)</button>
+                    <button class="btn-preset" onclick="setCron('0', '9', '*', '*', '1-5')">9:00 AM (Lun-Ven)</button>
+                    <button class="btn-preset" onclick="setCron('0', '0', '1', '*', '*')">1° del Mese</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const inputs = [
+            document.getElementById('cron-min'),
+            document.getElementById('cron-hour'),
+            document.getElementById('cron-day'),
+            document.getElementById('cron-month'),
+            document.getElementById('cron-week')
+        ];
+        const output = document.getElementById('cron-output');
+        const desc = document.getElementById('cron-desc');
+
+        function updateCron() {
+            const vals = inputs.map(i => i.value.trim() || '*');
+            const cronStr = vals.join(' ');
+            output.innerText = cronStr;
+            
+            try {
+                // Utilizza la libreria cronstrue per la traduzione in italiano
+                const explanation = cronstrue.toString(cronStr, { locale: "it" });
+                desc.innerText = explanation;
+                desc.style.color = "var(--text-primary)";
+            } catch (err) {
+                desc.innerText = "Espressione non valida o incompleta.";
+                desc.style.color = "#ff5252";
+            }
+        }
+
+        function setCron(m, h, d, mo, w) {
+            inputs[0].value = m; inputs[1].value = h; inputs[2].value = d; inputs[3].value = mo; inputs[4].value = w;
+            updateCron();
+        }
+
+        inputs.forEach(input => input.addEventListener('input', updateCron));
+        updateCron(); // Inizializza al caricamento
+    </script>
+</body>
+</html>

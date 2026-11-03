@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Color Picker</title>
+    <style>
+        body {
+            background-color: #000; color: #fff;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0;
+        }
+        .container {
+            background: #080808; border: 1px solid #1f1f1f; padding: 2rem;
+            border-radius: 12px; text-align: center; width: 90%; max-width: 350px;
+        }
+        h2 { margin-top: 0; font-size: 1.2rem; font-weight: 500; color: #e3e3e3; margin-bottom: 1.5rem; }
+        
+        input[type="color"] {
+            -webkit-appearance: none; border: none; width: 100px; height: 100px;
+            border-radius: 50%; cursor: pointer; padding: 0; background: none;
+            margin-bottom: 1.5rem;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 2px solid #333; border-radius: 50%; }
+        
+        .value-box {
+            background: #111; padding: 10px 15px; border-radius: 6px;
+            font-family: monospace; margin: 10px 0; border: 1px solid #222;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .value-box span { color: #8ab4f8; font-size: 1rem; }
+        
+        .copy-btn {
+            background: none; border: 1px solid #333; color: #ccc; cursor: pointer;
+            font-size: 0.75rem; text-transform: uppercase; padding: 4px 8px; border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover { background: #333; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Color Picker</h2>
+        <input type="color" id="picker" value="#8ab4f8">
+        
+        <div class="value-box">
+            <div>HEX: <span id="hex-val">#8ab4f8</span></div>
+            <button class="copy-btn" onclick="copy('hex-val', this)">Copia</button>
+        </div>
+        
+        <div class="value-box">
+            <div>RGB: <span id="rgb-val">138, 180, 248</span></div>
+            <button class="copy-btn" onclick="copy('rgb-val', this)">Copia</button>
+        </div>
+    </div>
+    
+    <script>
+        const picker = document.getElementById('picker');
+        const hexVal = document.getElementById('hex-val');
+        const rgbVal = document.getElementById('rgb-val');
+
+        function hexToRgb(hex) {
+            // Converte HEX in RGB
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? 
+                `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` 
+                : null;
+        }
+
+        // Aggiorna i valori mentre si sceglie il colore
+        picker.addEventListener('input', (e) => {
+            const hex = e.target.value;
+            hexVal.innerText = hex;
+            rgbVal.innerText = hexToRgb(hex);
+        });
+
+        function copy(id, btn) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            
+            const originalText = btn.innerText;
+            btn.innerText = "Fatto!";
+            setTimeout(() => btn.innerText = originalText, 1500);
+        }
+    </script>
+</body>
+</html>

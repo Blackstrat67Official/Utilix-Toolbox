@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Base Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#ffb74d;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:600px;display:flex;flex-direction:column;padding:2rem;gap:1.5rem;}
+.row{display:flex;flex-direction:column;gap:5px;}
+label{font-size:0.8rem;color:#888;font-weight:bold;text-transform:uppercase;}
+input{background:#111;color:var(--accent);border:1px solid var(--border);padding:12px;border-radius:6px;outline:none;font-family:'JetBrains Mono',monospace;font-size:1.1rem;text-transform:uppercase;}
+</style></head><body>
+<div class="container">
+    <div class="row"><label>Decimale (Base 10)</label><input type="text" id="dec" value="255"></div>
+    <div class="row"><label>Esadecimale (Base 16)</label><input type="text" id="hex"></div>
+    <div class="row"><label>Binario (Base 2)</label><input type="text" id="bin"></div>
+    <div class="row"><label>Ottale (Base 8)</label><input type="text" id="oct"></div>
+</div>
+<script>
+    const inputs = { dec: { el: document.getElementById('dec'), base: 10 }, hex: { el: document.getElementById('hex'), base: 16 }, bin: { el: document.getElementById('bin'), base: 2 }, oct: { el: document.getElementById('oct'), base: 8 } };
+    function update(sourceId) {
+        const val = inputs[sourceId].el.value; if(!val) { Object.values(inputs).forEach(i => i.el.value = ''); return; }
+        try {
+            const decVal = parseInt(val, inputs[sourceId].base);
+            if(isNaN(decVal)) throw "NaN";
+            Object.keys(inputs).forEach(key => { if(key !== sourceId) inputs[key].el.value = decVal.toString(inputs[key].base).toUpperCase(); });
+        } catch(e) {}
+    }
+    Object.keys(inputs).forEach(id => inputs[id].el.addEventListener('input', () => update(id))); update('dec');
+</script></body></html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Glassmorphism</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-container:#0a0a0a;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#81d4fa;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:#000;color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1000px;display:flex;overflow:hidden;}
+.controls{width:300px;padding:1.5rem;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:15px;background:#050505;z-index:2;}
+.preview{flex:1;display:flex;flex-direction:column;position:relative;background:linear-gradient(45deg, #2b4162, #fa9c7a);overflow:hidden;}
+.preview::before{content:'';position:absolute;width:150px;height:150px;background:#81d4fa;border-radius:50%;top:10%;left:20%;z-index:0;}
+.preview::after{content:'';position:absolute;width:200px;height:200px;background:#ffab91;border-radius:50%;bottom:10%;right:20%;z-index:0;}
+.glass-box{margin:auto;width:350px;height:250px;z-index:1;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:bold;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.2);}
+label{font-size:0.8rem;color:#aaa;display:flex;justify-content:space-between;} input[type=range]{width:100%;accent-color:var(--accent);} input[type=color]{width:100%;height:30px;border:none;background:none;}
+.code{background:#000;padding:1.5rem;font-family:'JetBrains Mono',monospace;color:var(--accent);border-top:1px solid var(--border);text-align:center;z-index:2;font-size:0.85rem;}
+</style></head><body>
+<div class="container">
+    <div class="controls">
+        <div><label>Sfocatura (Blur) <span id="v-blur">10px</span></label><input type="range" id="blur" min="0" max="40" value="10"></div>
+        <div><label>Opacità Sfondo <span id="v-op">0.2</span></label><input type="range" id="op" min="0" max="1" step="0.05" value="0.2"></div>
+        <div><label>Opacità Bordo <span id="v-bop">0.3</span></label><input type="range" id="bop" min="0" max="1" step="0.05" value="0.3"></div>
+        <div><label>Colore Base</label><input type="color" id="col" value="#ffffff"></div>
+    </div>
+    <div class="preview">
+        <div class="glass-box" id="box">Glassmorphism</div>
+        <div class="code" id="code"></div>
+    </div>
+</div>
+<script>
+    function hexToRgb(hex) { let n=parseInt(hex.slice(1),16); return `${(n>>16)&255}, ${(n>>8)&255}, ${n&255}`; }
+    function update() {
+        const bl=document.getElementById('blur').value, op=document.getElementById('op').value, bop=document.getElementById('bop').value, col=hexToRgb(document.getElementById('col').value);
+        document.getElementById('v-blur').innerText=bl+'px'; document.getElementById('v-op').innerText=op; document.getElementById('v-bop').innerText=bop;
+        const css = `background: rgba(${col}, ${op});\nbackdrop-filter: blur(${bl}px);\n-webkit-backdrop-filter: blur(${bl}px);\nborder: 1px solid rgba(${col}, ${bop});`;
+        document.getElementById('box').style.cssText = css; document.getElementById('code').innerText = css;
+    }
+    ['blur','op','bop','col'].forEach(id => document.getElementById(id).addEventListener('input', update)); update();
+</script></body></html>

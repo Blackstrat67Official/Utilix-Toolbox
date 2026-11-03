@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strat Toolbox</title>
+    <!-- Importiamo i font e le icone di Google (Material Symbols) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    
+    <!-- Importiamo lo stile universale -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h2>Strat Toolbox</h2>
+                <!-- NUOVO: Contatore tool -->
+                <span id="tool-counter" class="tool-counter">Caricamento...</span>
+            </div>
+            
+            <div class="search-container">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" id="search-bar" placeholder="Cerca un tool...">
+            </div>
+
+            <!-- La lista dei tool verrà generata qui da sidebar.js -->
+            <ul id="tool-list"></ul>
+        </aside>
+
+        <!-- Area Principale -->
+        <main id="content-area">
+            <!-- NUOVO: Barra dei Tab (stile VS Code) -->
+            <div id="tab-bar" class="tab-bar">
+                <!-- I tab verranno generati qui -->
+            </div>
+            
+            <div id="tool-container">
+                <div id="welcome-screen" class="welcome-message">
+                    <span class="material-symbols-outlined" style="font-size: 48px; color: #444;">construction</span>
+                    <h1>Benvenuto in Strat Toolbox</h1>
+                    <p>Seleziona un tool dalla barra laterale o cercalo tramite l'apposita barra.</p>
+                </div>
+                <!-- Gli iframe dei tool aperti verranno aggiunti qui dinamicamente -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Script per la logica della sidebar e del caricamento dei tool -->
+    <script src="sidebar.js"></script>
+</body>
+</html>

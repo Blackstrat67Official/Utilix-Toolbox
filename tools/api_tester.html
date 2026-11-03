@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>API Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#f06292;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1200px;display:flex;flex-direction:column;overflow:hidden;}
+.toolbar{padding:1rem;background:var(--bg-element);border-bottom:1px solid var(--border);display:flex;gap:10px;}
+select, input, button{background:#000;color:var(--text-primary);border:1px solid var(--border);padding:8px 12px;border-radius:6px;outline:none;font-family:'JetBrains Mono',monospace;}
+input{flex:1;} button{background:var(--accent);color:#000;cursor:pointer;font-weight:bold;}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex-grow:1;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);}
+.p-header{padding:8px 15px;background:#111;border-bottom:1px solid var(--border);font-size:0.8rem;color:#888;}
+textarea{flex:1;background:transparent;color:var(--text-primary);border:none;padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;resize:none;outline:none;}
+.out-meta{display:flex;gap:15px;padding:10px 15px;background:#111;border-bottom:1px solid var(--border);font-size:0.85rem;}
+.status.ok{color:#81c995;} .status.err{color:#ff5252;}
+</style></head><body>
+<div class="container">
+    <div class="toolbar">
+        <select id="method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+        <input type="text" id="url" placeholder="https://api.example.com/v1/users" value="https://jsonplaceholder.typicode.com/todos/1">
+        <button onclick="sendReq()">Invia ➔</button>
+    </div>
+    <div class="grid">
+        <div class="panel">
+            <div class="p-header">Request Body (JSON)</div>
+            <textarea id="req-body" placeholder='{"key": "value"}'></textarea>
+        </div>
+        <div class="panel">
+            <div class="out-meta">Stato: <span id="status" class="status">-</span> | Tempo: <span id="time" style="color:var(--accent)">-</span></div>
+            <textarea id="res-body" readonly placeholder="La risposta dell'API apparirà qui..." style="color:var(--accent)"></textarea>
+        </div>
+    </div>
+</div>
+<script>
+    async function sendReq() {
+        const m = document.getElementById('method').value, u = document.getElementById('url').value, b = document.getElementById('req-body').value;
+        const out = document.getElementById('res-body'), st = document.getElementById('status'), tm = document.getElementById('time');
+        if(!u) return; out.value = "Caricamento..."; st.innerText = "-"; tm.innerText = "-";
+        const opts = { method: m, headers: {'Content-Type': 'application/json'} };
+        if(m !== 'GET' && m !== 'DELETE' && b) opts.body = b;
+        try {
+            const start = performance.now(); const res = await fetch(u, opts); const end = performance.now();
+            st.innerText = `${res.status} ${res.statusText}`; st.className = `status ${res.ok ? 'ok' : 'err'}`;
+            tm.innerText = `${Math.round(end - start)}ms`;
+            const contentType = res.headers.get("content-type");
+            if(contentType && contentType.indexOf("application/json") !== -1) {
+                const json = await res.json(); out.value = JSON.stringify(json, null, 2);
+            } else { out.value = await res.text(); }
+        } catch(e) { st.innerText = "Error / CORS"; st.className = "status err"; out.value = e.message; }
+    }
+</script></body></html>

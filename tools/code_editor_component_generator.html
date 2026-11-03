@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Editor Generator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Custom Config for Tailwind to match your main theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            main: '#111111',
+                            sidebar: '#171717',
+                            hover: '#2a2a2a',
+                            active: '#333333',
+                            border: '#2e2e2e',
+                            text: '#e5e5e5',
+                            muted: '#888888'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #666; }
+        
+        /* Color input styling */
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-brand-main text-brand-text h-screen flex overflow-hidden font-sans">
+
+    <!-- Sidebar / Controlli -->
+    <aside class="w-80 bg-brand-sidebar border-r border-brand-border flex flex-col h-full shrink-0 overflow-y-auto">
+        <div class="p-5 border-b border-brand-border sticky top-0 bg-brand-sidebar z-10">
+            <h2 class="text-lg font-semibold text-white">Configura Editor</h2>
+            <p class="text-xs text-brand-muted mt-1">Personalizza l'aspetto e le funzioni</p>
+        </div>
+        
+        <div class="p-5 flex flex-col gap-5">
+            <!-- Colors -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-semibold text-brand-muted uppercase tracking-wider">Colori</h3>
+                
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium">Sfondo Base</label>
+                    <input type="color" id="c-bg" value="#1e1e1e" class="w-8 h-8 rounded cursor-pointer bg-transparent border border-brand-border">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium">Testo (Codice)</label>
+                    <input type="color" id="c-text" value="#d4d4d4" class="w-8 h-8 rounded cursor-pointer bg-transparent border border-brand-border">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium">Sfondo Numeri</label>
+                    <input type="color" id="c-gutter-bg" value="#252526" class="w-8 h-8 rounded cursor-pointer bg-transparent border border-brand-border">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium">Colore Numeri</label>
+                    <input type="color" id="c-gutter-text" value="#858585" class="w-8 h-8 rounded cursor-pointer bg-transparent border border-brand-border">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium">Colore Bordo</label>
+                    <input type="color" id="c-border" value="#3c3c3c" class="w-8 h-8 rounded cursor-pointer bg-transparent border border-brand-border">
+                </div>
+            </div>
+
+            <hr class="border-brand-border">
+
+            <!-- Impostazioni -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-semibold text-brand-muted uppercase tracking-wider">Impostazioni</h3>
+                
+                <div>
+                    <div class="flex justify-between text-sm font-medium mb-2">
+                        <label>Font Size</label>
+                        <span id="v-font" class="text-indigo-400">14px</span>
+                    </div>
+                    <input type="range" id="v-fontsize" value="14" min="10" max="24" class="w-full accent-indigo-500">
+                </div>
+                
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" id="chk-lines" checked class="w-4 h-4 rounded border-brand-border text-indigo-500 focus:ring-indigo-500 focus:ring-offset-brand-main bg-brand-main">
+                    <span class="text-sm group-hover:text-white transition-colors">Mostra Numeri di Riga</span>
+                </label>
+                
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" id="chk-readonly" class="w-4 h-4 rounded border-brand-border text-indigo-500 focus:ring-indigo-500 focus:ring-offset-brand-main bg-brand-main">
+                    <span class="text-sm group-hover:text-white transition-colors">Sola Lettura (Read-only)</span>
+                </label>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Area (Preview + Code) -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#0a0a0a]">
+        
+        <!-- Live Preview Section -->
+        <div class="h-1/2 p-8 flex flex-col relative border-b border-brand-border">
+            <div class="absolute top-4 left-4 text-xs font-semibold text-brand-muted uppercase tracking-wider">Live Preview</div>
+            
+            <div class="flex-1 w-full h-full flex items-center justify-center">
+                <!-- Il preview dell'editor verrà iniettato qui da JS -->
+                <div id="preview-container" class="w-full max-w-2xl shadow-2xl"></div>
+            </div>
+        </div>
+
+        <!-- Code Output Section -->
+        <div class="h-1/2 flex flex-col bg-brand-main relative">
+            <!-- Tabs -->
+            <div class="flex border-b border-brand-border bg-brand-sidebar px-4 pt-2">
+                <button onclick="switchTab('html')" id="btn-html" class="tab-btn active px-6 py-2.5 text-sm font-medium border-b-2 border-indigo-500 text-indigo-400 transition-colors">HTML</button>
+                <button onclick="switchTab('css')" id="btn-css" class="tab-btn px-6 py-2.5 text-sm font-medium border-b-2 border-transparent text-brand-muted hover:text-white transition-colors">CSS</button>
+                <button onclick="switchTab('js')" id="btn-js" class="tab-btn px-6 py-2.5 text-sm font-medium border-b-2 border-transparent text-brand-muted hover:text-white transition-colors">JavaScript</button>
+                
+                <div class="ml-auto flex items-center mb-1">
+                    <button onclick="copyCode()" id="copy-btn" class="text-xs bg-brand-hover hover:bg-brand-active text-white px-4 py-1.5 rounded-md transition-colors flex items-center gap-2 border border-brand-border">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        Copia Codice
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Code Textareas -->
+            <div class="flex-1 relative">
+                <textarea id="out-html" readonly class="code-area absolute inset-0 w-full h-full p-6 bg-transparent text-[#a9dc76] font-mono text-sm resize-none outline-none whitespace-pre"></textarea>
+                <textarea id="out-css" readonly class="code-area hidden absolute inset-0 w-full h-full p-6 bg-transparent text-[#78dce8] font-mono text-sm resize-none outline-none whitespace-pre"></textarea>
+                <textarea id="out-js" readonly class="code-area hidden absolute inset-0 w-full h-full p-6 bg-transparent text-[#ffd866] font-mono text-sm resize-none outline-none whitespace-pre"></textarea>
+            </div>
+        </div>
+    </main>
+
+    <!-- Style tag invisibile per far funzionare la live preview -->
+    <style id="dynamic-style"></style>
+
+    <script>
+        // Elementi DOM (Input)
+        const inputs = {
+            bg: document.getElementById('c-bg'),
+            text: document.getElementById('c-text'),
+            gutterBg: document.getElementById('c-gutter-bg'),
+            gutterText: document.getElementById('c-gutter-text'),
+            border: document.getElementById('c-border'),
+            fontSize: document.getElementById('v-fontsize'),
+            lines: document.getElementById('chk-lines'),
+            readOnly: document.getElementById('chk-readonly')
+        };
+
+        // Elementi DOM (Output)
+        const outputs = {
+            html: document.getElementById('out-html'),
+            css: document.getElementById('out-css'),
+            js: document.getElementById('out-js')
+        };
+        const preview = document.getElementById('preview-container');
+        const styleTag = document.getElementById('dynamic-style');
+
+        // Testo di esempio
+        const sampleCode = `function startEditor() {\n  // Benvenuto nel tuo nuovo Code Editor personalizzato!\n  console.log("Ready to code");\n  \n  return true;\n}`;
+
+        function generate() {
+            // Valori attuali
+            const bg = inputs.bg.value;
+            const text = inputs.text.value;
+            const gBg = inputs.gutterBg.value;
+            const gText = inputs.gutterText.value;
+            const border = inputs.border.value;
+            const fs = inputs.fontSize.value;
+            const showLines = inputs.lines.checked;
+            const readOnly = inputs.readOnly.checked ? 'readonly' : '';
+            
+            document.getElementById('v-font').innerText = fs + 'px';
+
+            // 1. Costruisci HTML
+            let htmlCode = `<div class="custom-editor">\n`;
+            if (showLines) {
+                htmlCode += `  <div class="ce-lines" id="ce-lines">1</div>\n`;
+            }
+            htmlCode += `  <textarea class="ce-textarea" id="ce-textarea" spellcheck="false" ${readOnly}>${sampleCode}</textarea>\n`;
+            htmlCode += `</div>`;
+
+            // 2. Costruisci CSS
+            let cssCode = `.custom-editor {
+  display: flex;
+  width: 100%;
+  height: 300px;
+  background-color: ${bg};
+  border: 1px solid ${border};
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: ${fs}px;
+  line-height: 1.5;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}\n`;
+            if (showLines) {
+                cssCode += `.ce-lines {
+  padding: 16px 12px;
+  background-color: ${gBg};
+  color: ${gText};
+  text-align: right;
+  user-select: none;
+  border-right: 1px solid ${border};
+  overflow: hidden;
+  min-width: 40px;
+}\n`;
+            }
+            cssCode += `.ce-textarea {
+  flex: 1;
+  background: transparent;
+  color: ${text};
+  padding: 16px;
+  border: none;
+  resize: none;
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+  line-height: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}`;
+
+            // 3. Costruisci JS
+            let jsCode = '';
+            if (showLines) {
+                document.getElementById('btn-js').style.display = 'block';
+                jsCode = `// Seleziona gli elementi
+const textarea = document.getElementById('ce-textarea');
+const lines = document.getElementById('ce-lines');
+
+// Aggiorna i numeri di riga in base al testo inserito
+function updateLines() {
+  const lineCount = textarea.value.split('\\n').length;
+  let linesHtml = '';
+  for(let i = 1; i <= lineCount; i++) {
+    linesHtml += i + '<br>';
+  }
+  lines.innerHTML = linesHtml;
+}
+
+// Sincronizza lo scroll e l'input
+textarea.addEventListener('input', updateLines);
+textarea.addEventListener('scroll', () => {
+  lines.scrollTop = textarea.scrollTop;
+});
+
+// Inizializzazione
+updateLines();`;
+            } else {
+                document.getElementById('btn-js').style.display = 'none';
+                if (activeTab === 'js') switchTab('html');
+                jsCode = '// Nessun JavaScript necessario per questa configurazione.\n// Puoi usare solo l\'HTML e il CSS!';
+            }
+
+            // Stampa nei textarea
+            outputs.html.value = htmlCode;
+            outputs.css.value = cssCode;
+            outputs.js.value = jsCode;
+
+            // Aggiorna Live Preview (Magia pura!)
+            styleTag.innerHTML = cssCode;
+            preview.innerHTML = htmlCode;
+
+            // Fai funzionare il preview in tempo reale se ci sono le righe
+            if (showLines) {
+                const pTextarea = preview.querySelector('#ce-textarea');
+                const pLines = preview.querySelector('#ce-lines');
+                
+                const updatePreviewLines = () => {
+                    const lineCount = pTextarea.value.split('\n').length;
+                    pLines.innerHTML = Array.from({length: lineCount}, (_, i) => i + 1).join('<br>');
+                };
+                
+                pTextarea.addEventListener('input', updatePreviewLines);
+                pTextarea.addEventListener('scroll', () => pLines.scrollTop = pTextarea.scrollTop);
+                updatePreviewLines();
+            }
+        }
+
+        // --- Logica della UI del Tool ---
+        let activeTab = 'html';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            
+            // Reset bottoni
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-500', 'text-indigo-400');
+                btn.classList.add('border-transparent', 'text-brand-muted');
+            });
+            
+            // Attiva bottone cliccato
+            const activeBtn = document.getElementById(`btn-${tab}`);
+            activeBtn.classList.remove('border-transparent', 'text-brand-muted');
+            activeBtn.classList.add('border-indigo-500', 'text-indigo-400');
+            
+            // Mostra textarea corretta
+            document.querySelectorAll('.code-area').forEach(area => area.classList.add('hidden'));
+            outputs[tab].classList.remove('hidden');
+        }
+
+        function copyCode() {
+            const codeToCopy = outputs[activeTab].value;
+            navigator.clipboard.writeText(codeToCopy);
+            
+            const btn = document.getElementById('copy-btn');
+            const originalHtml = btn.innerHTML;
+            
+            btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Copiato!`;
+            btn.classList.replace('bg-brand-hover', 'bg-emerald-600');
+            btn.classList.replace('hover:bg-brand-active', 'hover:bg-emerald-700');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.classList.replace('bg-emerald-600', 'bg-brand-hover');
+                btn.classList.replace('hover:bg-emerald-700', 'hover:bg-brand-active');
+            }, 2000);
+        }
+
+        // Ascolta ogni modifica in tempo reale
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', generate);
+            input.addEventListener('change', generate);
+        });
+
+        // Prima esecuzione all'avvio
+        generate();
+    </script>
+</body>
+</html>

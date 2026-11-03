@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON to SQL</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Stesso CSS di base del precedente per consistenza assoluta */
+        :root { --bg-body: #000000; --bg-container: #0a0a0a; --bg-element: #141414; --bg-hover: #1f1f1f; --border: rgba(255, 255, 255, 0.08); --text-primary: #ededed; --text-secondary: #888888; --accent: #f06292; --error: #ff5252; }
+        * { margin: 0; padding: 0; box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--bg-hover) transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+        body { background-color: var(--bg-body); color: var(--text-primary); font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; height: 100vh; padding: 1.5rem; }
+        .container { background: var(--bg-container); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 1200px; display: flex; flex-direction: column; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); } h2 { font-size: 1rem; font-weight: 500; }
+        .toolbar { padding: 0.75rem 1.5rem; background: var(--bg-element); border-bottom: 1px solid var(--border); display: flex; gap: 1rem; align-items: center; }
+        .input-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .input-field { background: var(--bg-body); border: 1px solid var(--border); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; outline: none; font-family: 'JetBrains Mono', monospace; }
+        .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex-grow: 1; background: var(--border); }
+        .panel { background: var(--bg-container); display: flex; flex-direction: column; }
+        .panel-header { padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); display: flex; justify-content: space-between; }
+        textarea { width: 100%; flex-grow: 1; background: transparent; color: var(--text-primary); border: none; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; outline: none; white-space: pre; }
+        textarea.output { color: var(--accent); }
+        .btn-action { background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; } .btn-action:hover { background: var(--bg-hover); }
+        .error-bar { background: rgba(255, 82, 82, 0.1); color: var(--error); padding: 8px 1.5rem; font-size: 0.85rem; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h2>JSON to SQL</h2><button class="btn-action" onclick="clearAll()">Pulisci</button></div>
+        <div class="toolbar">
+            <div class="input-group"><label>Nome Tabella:</label><input type="text" id="table-name" class="input-field" value="api_dati"></div>
+        </div>
+        <div class="error-bar" id="error-bar"></div>
+        <div class="editor-grid">
+            <div class="panel">
+                <div class="panel-header">Input JSON (Array di oggetti)</div>
+                <textarea id="input-json" placeholder='[&#10;  {"id": 1, "nome": "Test", "attivo": true},&#10;  {"id": 2, "nome": "Utente", "attivo": false}&#10;]'></textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-header">Output SQL <button class="btn-action" id="copy-btn" onclick="copyOutput()">Copia</button></div>
+                <textarea id="output-sql" class="output" readonly></textarea>
+            </div>
+        </div>
+    </div>
+    <script>
+        const input = document.getElementById('input-json');
+        const output = document.getElementById('output-sql');
+        const err = document.getElementById('error-bar');
+
+        input.addEventListener('input', () => {
+            const raw = input.value.trim();
+            const tableName = document.getElementById('table-name').value.trim() || 'table_name';
+            if (!raw) { output.value = ''; err.style.display = 'none'; return; }
+
+            try {
+                const data = JSON.parse(raw);
+                if (!Array.isArray(data) || data.length === 0) throw new Error("Serve un Array JSON contenente oggetti [{}, {}]");
+                
+                // Prende le chiavi dal primo oggetto
+                const keys = Object.keys(data[0]);
+                
+                let sql = ``;
+                data.forEach(obj => {
+                    const values = keys.map(k => {
+                        let v = obj[k];
+                        if (v === null || v === undefined) return 'NULL';
+                        if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+                        if (typeof v === 'number') return v;
+                        if (typeof v === 'object') v = JSON.stringify(v); // Salva array interni come stringa
+                        return `'${String(v).replace(/'/g, "''")}'`;
+                    });
+                    sql += `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${values.join(', ')});\n`;
+                });
+
+                output.value = sql;
+                err.style.display = 'none';
+            } catch (e) {
+                err.innerText = "Errore JSON: " + e.message;
+                err.style.display = 'block';
+            }
+        });
+
+        function clearAll() { input.value = ''; output.value = ''; err.style.display='none'; }
+        function copyOutput() { navigator.clipboard.writeText(output.value); const b=document.getElementById('copy-btn'); b.innerText="Copiato!"; setTimeout(()=>b.innerText="Copia",1500); }
+    </script>
+</body>
+</html>

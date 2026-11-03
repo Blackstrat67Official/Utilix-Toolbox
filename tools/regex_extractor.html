@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Regex Extractor</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#ce93d8;}
+*{margin:0;padding:0;box-sizing:border-box;scrollbar-width:thin;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1200px;display:flex;flex-direction:column;overflow:hidden;}
+.toolbar{padding:1rem 1.5rem;background:var(--bg-element);border-bottom:1px solid var(--border);display:flex;gap:15px;align-items:center;}
+select{background:var(--bg-body);color:var(--text-primary);border:1px solid var(--border);padding:8px;border-radius:6px;outline:none;}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex-grow:1;overflow:hidden;}
+textarea{background:transparent;color:#aaa;border:none;padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;resize:none;outline:none;}
+.left{border-right:1px solid var(--border);}
+.output-wrap{display:flex;flex-direction:column;}
+.out-header{padding:10px 1.5rem;background:#111;border-bottom:1px solid var(--border);font-size:0.8rem;color:#888;display:flex;justify-content:space-between;}
+.out-list{flex-grow:1;padding:1.5rem;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--accent);white-space:pre-wrap;}
+button{background:var(--text-primary);color:#000;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;}
+</style></head><body>
+<div class="container">
+    <div class="toolbar">
+        <label style="font-size:0.85rem;color:#888;">Cosa estrarre:</label>
+        <select id="preset">
+            <option value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}">Indirizzi Email</option>
+            <option value="\b(?:\d{1,3}\.){3}\d{1,3}\b">Indirizzi IPv4</option>
+            <option value="https?:\/\/[^\s]+">URL / Link Web</option>
+            <option value="\b\d{2}[\/-]\d{2}[\/-]\d{4}\b">Date (DD/MM/YYYY)</option>
+        </select>
+    </div>
+    <div class="grid">
+        <textarea id="in" class="left" placeholder="Incolla il tuo dump di testo qui..."></textarea>
+        <div class="output-wrap">
+            <div class="out-header"><span id="count">0 Trovati</span> <button onclick="copyOut()">Copia Lista</button></div>
+            <div class="out-list" id="out">Nessun match.</div>
+        </div>
+    </div>
+</div>
+<script>
+    const i=document.getElementById('in'), o=document.getElementById('out'), p=document.getElementById('preset'), c=document.getElementById('count');
+    function extract() {
+        const text = i.value; if(!text) { o.innerHTML=''; c.innerText='0 Trovati'; return; }
+        try {
+            const rx = new RegExp(p.value, 'g'); const matches = text.match(rx) || [];
+            c.innerText = `${matches.length} Trovati`; o.innerHTML = matches.join('\n');
+        } catch(e) { o.innerHTML = "Errore Regex"; }
+    }
+    i.addEventListener('input', extract); p.addEventListener('change', extract);
+    function copyOut() { navigator.clipboard.writeText(o.innerText); }
+</script></body></html>

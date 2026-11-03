@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>CSS Triangle</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-container:#0a0a0a;--border:rgba(255,255,255,0.08);--accent:#ff8a65;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:#000;color:#fff;font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:900px;display:flex;}
+.controls{width:300px;padding:1.5rem;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:15px;background:#050505;}
+.preview{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;}
+.tri{width:0;height:0;}
+label{font-size:0.8rem;color:#aaa;} select, input{width:100%;background:#111;color:#fff;border:1px solid var(--border);padding:8px;border-radius:4px;outline:none;}
+.code{position:absolute;bottom:0;width:100%;background:#000;padding:1.5rem;font-family:'JetBrains Mono',monospace;color:var(--accent);border-top:1px solid var(--border);white-space:pre;}
+</style></head><body>
+<div class="container">
+    <div class="controls">
+        <div><label>Direzione</label><select id="dir"><option value="top">Su</option><option value="right">Destra</option><option value="bottom">Giù</option><option value="left">Sinistra</option></select></div>
+        <div><label>Larghezza (px)</label><input type="number" id="w" value="100"></div>
+        <div><label>Altezza (px)</label><input type="number" id="h" value="100"></div>
+        <div><label>Colore</label><input type="color" id="c" value="#ff8a65" style="height:35px;"></div>
+    </div>
+    <div class="preview"><div class="tri" id="tri"></div><div class="code" id="code"></div></div>
+</div>
+<script>
+    function update() {
+        const d=document.getElementById('dir').value, w=document.getElementById('w').value/2, h=document.getElementById('h').value, c=document.getElementById('c').value;
+        let css = `width: 0;\nheight: 0;\n`;
+        if(d==='top'){ css+=`border-left: ${w}px solid transparent;\nborder-right: ${w}px solid transparent;\nborder-bottom: ${h}px solid ${c};`; }
+        if(d==='bottom'){ css+=`border-left: ${w}px solid transparent;\nborder-right: ${w}px solid transparent;\nborder-top: ${h}px solid ${c};`; }
+        if(d==='left'){ css+=`border-top: ${w}px solid transparent;\nborder-bottom: ${w}px solid transparent;\nborder-right: ${h}px solid ${c};`; }
+        if(d==='right'){ css+=`border-top: ${w}px solid transparent;\nborder-bottom: ${w}px solid transparent;\nborder-left: ${h}px solid ${c};`; }
+        document.getElementById('tri').style.cssText = css; document.getElementById('code').innerText = css;
+    }
+    ['dir','w','h','c'].forEach(id => document.getElementById(id).addEventListener('input', update)); update();
+</script></body></html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Regex Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#ff8a65;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1000px;display:flex;flex-direction:column;}
+.top{display:flex;padding:1rem;border-bottom:1px solid var(--border);gap:10px;align-items:center;}
+input{background:var(--bg-element);color:var(--accent);border:1px solid var(--border);padding:10px;border-radius:6px;font-family:'JetBrains Mono',monospace;outline:none;}
+.grid{display:grid;grid-template-rows:1fr 1fr;flex-grow:1;}
+textarea, .out{padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.9rem;border:none;background:transparent;color:var(--text-primary);resize:none;outline:none;}
+.out{border-top:1px solid var(--border);background:#111;overflow-y:auto;white-space:pre-wrap;color:#666;}
+.hl{background:rgba(255, 138, 101, 0.2);color:var(--accent);border-radius:3px;}
+</style></head><body>
+<div class="container">
+    <div class="top">
+        <span style="font-family:monospace;font-size:1.5rem;color:#888;">/</span>
+        <input type="text" id="rgx" style="flex:1;" placeholder="pattern (es. [a-z]+@[a-z]+\.[a-z]+)" value="\d+">
+        <span style="font-family:monospace;font-size:1.5rem;color:#888;">/</span>
+        <input type="text" id="flg" style="width:60px;" value="gm">
+    </div>
+    <div class="grid">
+        <textarea id="txt" placeholder="Testo di prova...">Ho 2 gatti e 123 problemi.</textarea>
+        <div class="out" id="out"></div>
+    </div>
+</div>
+<script>
+    function run() {
+        const t=document.getElementById('txt').value, r=document.getElementById('rgx').value, f=document.getElementById('flg').value;
+        const o=document.getElementById('out');
+        if(!r) { o.innerHTML = t; return; }
+        try {
+            const rx = new RegExp(r, f);
+            o.innerHTML = t.replace(rx, m => `<span class="hl">${m}</span>`);
+        } catch(e) { o.innerHTML = '<span style="color:#ff5252">Regex non valida</span>'; }
+    }
+    ['rgx','flg','txt'].forEach(id => document.getElementById(id).addEventListener('input', run)); run();
+</script></body></html>

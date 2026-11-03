@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Formatter</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- SQL Formatter Lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/12.2.4/sql-formatter.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #000000; --bg-container: #0a0a0a; --bg-element: #141414; --bg-hover: #1f1f1f;
+            --border: rgba(255, 255, 255, 0.08); --border-hover: rgba(255, 255, 255, 0.15);
+            --text-primary: #ededed; --text-secondary: #888888; --accent: #f6bf26;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--bg-hover) transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+        body { background: var(--bg-body); color: var(--text-primary); font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: stretch; height: 100vh; padding: 1.5rem; }
+        .container { background: var(--bg-container); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 1200px; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 1rem; font-weight: 500; }
+        .btn-action { background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.15s ease; }
+        .btn-action:hover { background: var(--bg-hover); border-color: var(--border-hover); }
+        .btn-primary { background: var(--text-primary); color: var(--bg-body); border: none; }
+        .btn-primary:hover { background: #ffffff; }
+
+        .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex-grow: 1; background: var(--border); }
+        .panel { background: var(--bg-container); display: flex; flex-direction: column; }
+        .panel-header { padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+        
+        textarea { width: 100%; flex-grow: 1; background: transparent; color: var(--text-primary); border: none; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; resize: none; outline: none; }
+        textarea.output { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>SQL Formatter</h2>
+            <div style="display:flex; gap: 8px;">
+                <button class="btn-action" onclick="clearAll()">Pulisci</button>
+                <button class="btn-action btn-primary" onclick="formatSQL()">Formatta Query</button>
+            </div>
+        </div>
+
+        <div class="editor-grid">
+            <div class="panel">
+                <div class="panel-header">Input (Raw SQL)</div>
+                <textarea id="input" placeholder="SELECT * FROM users WHERE active = 1 JOIN orders ON users.id = orders.user_id..." spellcheck="false"></textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    Output (Formatted)
+                    <button class="btn-action" id="copy-btn" onclick="copyOutput()" style="padding: 2px 8px; font-size: 0.7rem;">Copia</button>
+                </div>
+                <textarea id="output" class="output" readonly placeholder="Risultato formattato..."></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const input = document.getElementById('input');
+        const output = document.getElementById('output');
+
+        function formatSQL() {
+            const rawSql = input.value.trim();
+            if (!rawSql) {
+                output.value = "";
+                return;
+            }
+            try {
+                // Formatta l'SQL. Di base usa il dialetto standard. Maiuscole per le keyword (keywordCase: 'upper')
+                const formatted = sqlFormatter.format(rawSql, { 
+                    language: 'sql', 
+                    keywordCase: 'upper' 
+                });
+                output.value = formatted;
+            } catch (err) {
+                output.value = "Errore di parsing SQL:\n" + err.message;
+            }
+        }
+
+        // Permette la formattazione live se l'utente incolla o smette di scrivere per 500ms
+        let timeout = null;
+        input.addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(formatSQL, 500);
+        });
+
+        function clearAll() { input.value = ""; output.value = ""; input.focus(); }
+
+        function copyOutput() {
+            if(!output.value) return;
+            navigator.clipboard.writeText(output.value);
+            const btn = document.getElementById('copy-btn');
+            btn.innerText = "Copiato!";
+            setTimeout(() => btn.innerText = "Copia", 1500);
+        }
+    </script>
+</body>
+</html>

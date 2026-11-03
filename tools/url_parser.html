@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>URL Parser</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--text-secondary:#888;--accent:#4fc3f7;}
+*{margin:0;padding:0;box-sizing:border-box;scrollbar-width:thin;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1000px;display:flex;flex-direction:column;}
+.header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);}
+textarea{width:100%;background:var(--bg-element);color:var(--accent);border:none;border-bottom:1px solid var(--border);padding:1.5rem;font-family:'JetBrains Mono',monospace;resize:none;outline:none;}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex-grow:1;overflow:hidden;}
+.panel{padding:1.5rem;overflow-y:auto;border-right:1px solid var(--border);}
+.param-row{display:flex;gap:10px;margin-bottom:8px;align-items:center;}
+.param-row input{flex:1;background:#111;color:var(--text-primary);border:1px solid var(--border);padding:6px;border-radius:4px;font-family:monospace;font-size:0.85rem;}
+pre{font-family:'JetBrains Mono',monospace;color:#fbbc04;font-size:0.85rem;white-space:pre-wrap;}
+</style></head><body>
+<div class="container">
+    <div class="header"><h2>URL Parser</h2></div>
+    <textarea id="url-in" rows="3" placeholder="Incolla URL (es. https://sito.com/path?id=123&utm_source=google)"></textarea>
+    <div class="grid">
+        <div class="panel" id="params-list"><div style="color:#555;">Parametri appariranno qui...</div></div>
+        <div class="panel"><pre id="json-out">JSON Output...</pre></div>
+    </div>
+</div>
+<script>
+    document.getElementById('url-in').addEventListener('input', (e) => {
+        try {
+            const url = new URL(e.target.value);
+            const params = new URLSearchParams(url.search);
+            const pList = document.getElementById('params-list'); pList.innerHTML = `<strong>Dominio:</strong> ${url.hostname}<br><strong>Path:</strong> ${url.pathname}<hr style="margin:10px 0;border-color:#222;">`;
+            let jsonObj = {};
+            for(let [k, v] of params) {
+                jsonObj[k] = v;
+                pList.innerHTML += `<div class="param-row"><input value="${k}" readonly style="flex:0.4;color:#4fc3f7;"><input value="${v}" readonly></div>`;
+            }
+            document.getElementById('json-out').textContent = JSON.stringify(jsonObj, null, 2);
+        } catch(err) { document.getElementById('params-list').innerHTML = '<span style="color:#ff5252">URL non valido</span>'; }
+    });
+</script></body></html>

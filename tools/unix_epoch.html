@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Unix Epoch</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--text-secondary:#888;--accent:#9575cd;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:800px;display:flex;flex-direction:column;}
+.header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.panel{padding:1.5rem;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px;}
+.live-epoch{font-family:'JetBrains Mono',monospace;font-size:2rem;color:var(--accent);text-align:center;padding:1rem;}
+input{background:var(--bg-element);color:var(--text-primary);border:1px solid var(--border);padding:10px;border-radius:6px;font-family:'JetBrains Mono',monospace;outline:none;width:100%;font-size:1rem;}
+.result{background:#111;padding:10px;border-radius:6px;font-family:'JetBrains Mono',monospace;color:#81c995;}
+</style></head><body>
+<div class="container">
+    <div class="header"><h2>Unix Epoch Converter</h2></div>
+    <div class="live-epoch" id="live">0000000000</div>
+    <div class="panel">
+        <label style="color:var(--text-secondary);font-size:0.8rem;">Timestamp ➔ Data</label>
+        <input type="number" id="ts-input" placeholder="Es. 1700000000">
+        <div class="result" id="ts-out">Inserisci un timestamp...</div>
+    </div>
+    <div class="panel">
+        <label style="color:var(--text-secondary);font-size:0.8rem;">Data ➔ Timestamp</label>
+        <input type="datetime-local" id="date-input" step="1">
+        <div class="result" id="date-out">Seleziona una data...</div>
+    </div>
+</div>
+<script>
+    setInterval(() => document.getElementById('live').innerText = Math.floor(Date.now()/1000), 1000);
+    document.getElementById('ts-input').addEventListener('input', (e) => {
+        let val = e.target.value; if(!val) return;
+        let d = new Date(val.length > 10 ? parseInt(val) : val * 1000);
+        document.getElementById('ts-out').innerHTML = `Locale: ${d.toLocaleString()}<br>UTC: ${d.toUTCString()}`;
+    });
+    document.getElementById('date-input').addEventListener('input', (e) => {
+        let val = e.target.value; if(!val) return;
+        let d = new Date(val);
+        document.getElementById('date-out').innerHTML = `Secondi: ${Math.floor(d.getTime()/1000)}<br>Millisecondi: ${d.getTime()}`;
+    });
+</script></body></html>

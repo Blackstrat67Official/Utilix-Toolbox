@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Hash Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --bg-body: #000000; --bg-container: #0a0a0a; --bg-element: #141414;
+            --bg-hover: #1f1f1f; --border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ededed; --text-secondary: #888888; --accent: #81c995;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-body); color: var(--text-primary);
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex; justify-content: center; align-items: stretch; height: 100vh; padding: 1.5rem;
+        }
+        .container {
+            background: var(--bg-container); border: 1px solid var(--border); border-radius: 12px;
+            width: 100%; max-width: 800px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .header { display: flex; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 1rem; font-weight: 500; }
+        .main-input {
+            width: 100%; min-height: 120px; background: transparent; color: var(--text-primary);
+            border: none; border-bottom: 1px solid var(--border); padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; resize: none; outline: none;
+        }
+        .hash-list { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+        .hash-item { display: flex; flex-direction: column; gap: 4px; }
+        .hash-label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+        .hash-output-wrapper { display: flex; gap: 8px; }
+        .hash-output {
+            flex-grow: 1; background: var(--bg-element); color: var(--accent);
+            border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; outline: none; user-select: all;
+        }
+        .btn-copy {
+            background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border);
+            padding: 0 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.15s;
+        }
+        .btn-copy:hover { background: var(--bg-hover); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h2>Hash Generator</h2></div>
+        <textarea id="text-input" class="main-input" placeholder="Scrivi qui il testo da convertire..."></textarea>
+        
+        <div class="hash-list">
+            <div class="hash-item">
+                <span class="hash-label">MD5</span>
+                <div class="hash-output-wrapper">
+                    <input type="text" id="md5" class="hash-output" readonly>
+                    <button class="btn-copy" onclick="copyHash('md5', this)">Copia</button>
+                </div>
+            </div>
+            <div class="hash-item">
+                <span class="hash-label">SHA-1</span>
+                <div class="hash-output-wrapper">
+                    <input type="text" id="sha1" class="hash-output" readonly>
+                    <button class="btn-copy" onclick="copyHash('sha1', this)">Copia</button>
+                </div>
+            </div>
+            <div class="hash-item">
+                <span class="hash-label">SHA-256</span>
+                <div class="hash-output-wrapper">
+                    <input type="text" id="sha256" class="hash-output" readonly>
+                    <button class="btn-copy" onclick="copyHash('sha256', this)">Copia</button>
+                </div>
+            </div>
+            <div class="hash-item">
+                <span class="hash-label">SHA-512</span>
+                <div class="hash-output-wrapper">
+                    <input type="text" id="sha512" class="hash-output" readonly>
+                    <button class="btn-copy" onclick="copyHash('sha512', this)">Copia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const input = document.getElementById('text-input');
+        const hashes = {
+            md5: document.getElementById('md5'),
+            sha1: document.getElementById('sha1'),
+            sha256: document.getElementById('sha256'),
+            sha512: document.getElementById('sha512')
+        };
+
+        input.addEventListener('input', () => {
+            const txt = input.value;
+            if (!txt) {
+                Object.values(hashes).forEach(el => el.value = "");
+                return;
+            }
+            // Calcolo simultaneo
+            hashes.md5.value = CryptoJS.MD5(txt).toString();
+            hashes.sha1.value = CryptoJS.SHA1(txt).toString();
+            hashes.sha256.value = CryptoJS.SHA256(txt).toString();
+            hashes.sha512.value = CryptoJS.SHA512(txt).toString();
+        });
+
+        function copyHash(id, btn) {
+            const el = document.getElementById(id);
+            if(!el.value) return;
+            navigator.clipboard.writeText(el.value);
+            const orig = btn.innerText;
+            btn.innerText = "Copiato!";
+            setTimeout(() => btn.innerText = orig, 1000);
+        }
+    </script>
+</body>
+</html>

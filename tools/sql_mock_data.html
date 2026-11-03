@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Mock Data Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-body: #000000; --bg-container: #0a0a0a; --bg-element: #141414; --bg-hover: #1f1f1f; --border: rgba(255, 255, 255, 0.08); --text-primary: #ededed; --text-secondary: #888888; --accent: #ffb74d; }
+        * { margin: 0; padding: 0; box-sizing: border-box; scrollbar-width: thin; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+        body { background: var(--bg-body); color: var(--text-primary); font-family: system-ui, sans-serif; display: flex; justify-content: center; height: 100vh; padding: 1.5rem; }
+        .container { background: var(--bg-container); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 1000px; display: flex; flex-direction: column; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+        .toolbar { padding: 1rem 1.5rem; background: var(--bg-element); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        
+        .main-area { display: flex; flex-grow: 1; overflow: hidden; }
+        .config-panel { width: 50%; border-right: 1px solid var(--border); padding: 1.5rem; overflow-y: auto; }
+        .output-panel { width: 50%; display: flex; flex-direction: column; }
+        
+        .col-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        input, select { background: var(--bg-body); color: var(--text-primary); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; outline: none; }
+        .btn-action { background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .btn-action:hover { background: var(--bg-hover); }
+        .btn-primary { background: var(--text-primary); color: var(--bg-body); }
+        .btn-remove { background: transparent; border: none; color: #ff5252; cursor: pointer; font-weight: bold; }
+        
+        textarea { flex-grow: 1; background: var(--bg-container); color: var(--accent); border: none; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; resize: none; outline: none; white-space: pre; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h2>SQL Mock Data</h2> <button class="btn-action btn-primary" onclick="generateMock()">Genera Dati</button></div>
+        <div class="toolbar">
+            <div style="display:flex; gap:15px;">
+                <div><label style="font-size:0.8rem; color:#888;">Tabella:</label><br><input type="text" id="tbl" value="utenti"></div>
+                <div><label style="font-size:0.8rem; color:#888;">Righe:</label><br><input type="number" id="rows" value="10" min="1" max="1000" style="width:80px;"></div>
+            </div>
+            <button class="btn-action" onclick="addColumn()">+ Aggiungi Colonna</button>
+        </div>
+        
+        <div class="main-area">
+            <div class="config-panel" id="col-container">
+                <!-- Colonne Generate via JS -->
+            </div>
+            <div class="output-panel">
+                <textarea id="output" readonly placeholder="Il codice SQL apparirà qui..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const colContainer = document.getElementById('col-container');
+        const types = ['id (Auto)', 'UUID', 'Nome', 'Cognome', 'Email', 'Booleano', 'Data Casuale', 'Intero (1-100)'];
+
+        function addColumn(name = '', typeIndex = 0) {
+            const div = document.createElement('div');
+            div.className = 'col-row';
+            
+            let typeOptions = types.map((t, i) => `<option value="${t}" ${i === typeIndex ? 'selected' : ''}>${t}</option>`).join('');
+            
+            div.innerHTML = `
+                <input type="text" placeholder="nome_colonna" value="${name}" style="flex:1;">
+                <select style="flex:1;">${typeOptions}</select>
+                <button class="btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            colContainer.appendChild(div);
+        }
+
+        // Setup iniziale
+        addColumn('id', 0); addColumn('nome', 2); addColumn('email', 4); addColumn('data_iscr', 6);
+
+        // Generatori Fake
+        const fNames = ["Marco","Giulia","Luca","Anna","Matteo","Sofia","Alessandro","Martina"];
+        const lNames = ["Rossi","Russo","Ferrari","Esposito","Bianchi","Romano","Colombo","Ricci"];
+        function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+        function generateMock() {
+            const tbl = document.getElementById('tbl').value || 'mock_table';
+            const numRows = parseInt(document.getElementById('rows').value) || 10;
+            const cols = Array.from(colContainer.querySelectorAll('.col-row')).map(row => ({
+                name: row.querySelector('input').value || 'col',
+                type: row.querySelector('select').value
+            }));
+
+            let sql = ``;
+            for(let i=1; i<=numRows; i++) {
+                let fN = rnd(fNames), lN = rnd(lNames); // Per coerenza nome-email
+                
+                let vals = cols.map(c => {
+                    switch(c.type) {
+                        case 'id (Auto)': return i;
+                        case 'UUID': return `'${crypto.randomUUID()}'`;
+                        case 'Nome': return `'${fN}'`;
+                        case 'Cognome': return `'${lN}'`;
+                        case 'Email': return `'${fN.toLowerCase()}.${lN.toLowerCase()}${i}@example.com'`;
+                        case 'Booleano': return Math.random() > 0.5 ? 'TRUE' : 'FALSE';
+                        case 'Data Casuale': 
+                            let d = new Date(Date.now() - Math.floor(Math.random() * 10000000000));
+                            return `'${d.toISOString().split('T')[0]}'`;
+                        case 'Intero (1-100)': return Math.floor(Math.random() * 100) + 1;
+                    }
+                });
+                sql += `INSERT INTO ${tbl} (${cols.map(c=>c.name).join(', ')}) VALUES (${vals.join(', ')});\n`;
+            }
+            document.getElementById('output').value = sql;
+        }
+    </script>
+</body>
+</html>

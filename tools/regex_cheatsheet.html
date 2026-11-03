@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Regex Library</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#ffd54f;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1200px;display:flex;flex-direction:column;overflow:hidden;}
+.header{padding:1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+input{background:var(--bg-body);color:var(--text-primary);border:1px solid var(--border);padding:10px 15px;border-radius:8px;outline:none;width:300px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem;padding:1.5rem;overflow-y:auto;flex-grow:1;}
+.card{background:var(--bg-element);border:1px solid var(--border);border-radius:8px;padding:1rem;display:flex;flex-direction:column;gap:10px;}
+.card h3{font-size:0.9rem;font-weight:600;}
+.card p{font-size:0.75rem;color:#888;}
+.code-box{background:#000;color:var(--accent);padding:10px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:0.8rem;border:1px solid var(--border);word-break:break-all;}
+button{background:var(--text-primary);color:#000;border:none;padding:6px;border-radius:4px;cursor:pointer;font-weight:600;font-size:0.75rem;}
+</style></head><body>
+<div class="container">
+    <div class="header">
+        <h2>Regex Pattern Library</h2>
+        <input type="text" id="search" placeholder="Cerca pattern (es. email, password)...">
+    </div>
+    <div class="grid" id="grid">
+        <!-- Generato da JS -->
+    </div>
+</div>
+<script>
+    const patterns = [
+        { t: "Indirizzo Email", d: "Valida il formato standard di una email.", c: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" },
+        { t: "Password Sicura", d: "Min 8 char, 1 maiuscola, 1 minuscola, 1 numero.", c: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$" },
+        { t: "Codice Fiscale", d: "Valida il formato del Codice Fiscale Italiano.", c: "^[A-Z]{6}\\d{2}[A-Z]\\d{2}[A-Z]\\d{3}[A-Z]$" },
+        { t: "Partita IVA (IT)", d: "Esattamente 11 cifre numeriche.", c: "^[0-9]{11}$" },
+        { t: "Colore HEX", d: "Es. #FFF o #FFFFFF.", c: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$" },
+        { t: "URL", d: "Formato link HTTP/HTTPS.", c: "^https?:\\/\\/(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$" }
+    ];
+    const grid = document.getElementById('grid');
+    function render(filter = '') {
+        grid.innerHTML = '';
+        patterns.filter(p => p.t.toLowerCase().includes(filter.toLowerCase()) || p.d.toLowerCase().includes(filter.toLowerCase()))
+        .forEach(p => {
+            grid.innerHTML += `<div class="card"><h3>${p.t}</h3><p>${p.d}</p><div class="code-box">${p.c}</div><button onclick="navigator.clipboard.writeText('${p.c.replace(/\\/g, '\\\\')}');this.innerText='Copiato!';setTimeout(()=>this.innerText='Copia Regex',1000)">Copia Regex</button></div>`;
+        });
+    }
+    document.getElementById('search').addEventListener('input', e => render(e.target.value)); render();
+</script></body></html>

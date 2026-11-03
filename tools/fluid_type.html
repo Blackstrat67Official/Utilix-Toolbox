@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Fluid Type</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-container:#0a0a0a;--border:rgba(255,255,255,0.08);--accent:#ffab91;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:#000;color:#fff;font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:800px;display:flex;flex-direction:column;overflow:hidden;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:2rem;}
+.box{display:flex;flex-direction:column;gap:5px;} label{font-size:0.8rem;color:#aaa;}
+input{background:#111;color:#fff;border:1px solid var(--border);padding:10px;border-radius:6px;outline:none;font-family:'JetBrains Mono',monospace;}
+.out-area{background:#111;border-top:1px solid var(--border);padding:2rem;display:flex;flex-direction:column;align-items:center;gap:15px;flex-grow:1;}
+.code{background:#000;color:var(--accent);padding:15px;font-family:'JetBrains Mono',monospace;border:1px solid var(--border);border-radius:6px;width:100%;text-align:center;}
+</style></head><body>
+<div class="container">
+    <div class="grid">
+        <div class="box"><label>Min Viewport (px)</label><input type="number" id="v-min" value="320"></div>
+        <div class="box"><label>Max Viewport (px)</label><input type="number" id="v-max" value="1200"></div>
+        <div class="box"><label>Min Font Size (rem)</label><input type="number" step="0.1" id="f-min" value="1"></div>
+        <div class="box"><label>Max Font Size (rem)</label><input type="number" step="0.1" id="f-max" value="3"></div>
+    </div>
+    <div class="out-area">
+        <div style="font-size:0.85rem;color:#888;">Codice generato (Copia e usa per font-size, padding, margin)</div>
+        <div class="code" id="code"></div>
+        <div id="preview" style="margin-top:20px;font-weight:bold;">Testo di Prova Fluido</div>
+    </div>
+</div>
+<script>
+    function update() {
+        const vmin=parseFloat(document.getElementById('v-min').value), vmax=parseFloat(document.getElementById('v-max').value), fmin=parseFloat(document.getElementById('f-min').value), fmax=parseFloat(document.getElementById('f-max').value);
+        if(vmin===vmax) return;
+        const slope = (fmax - fmin) / ((vmax/16) - (vmin/16)); const yAxis = fmin - (vmin/16) * slope;
+        const css = `clamp(${fmin}rem, ${yAxis.toFixed(4)}rem + ${(slope*100).toFixed(4)}vw, ${fmax}rem)`;
+        document.getElementById('code').innerText = `font-size: ${css};`; document.getElementById('preview').style.fontSize = css;
+    }
+    ['v-min','v-max','f-min','f-max'].forEach(id => document.getElementById(id).addEventListener('input', update)); update();
+</script></body></html>

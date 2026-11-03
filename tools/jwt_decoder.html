@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>JWT Decoder</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #000000; --bg-container: #0a0a0a; --bg-element: #141414;
+            --bg-hover: #1f1f1f; --border: rgba(255, 255, 255, 0.08); --border-hover: rgba(255, 255, 255, 0.15);
+            --text-primary: #ededed; --text-secondary: #888888; --accent: #d7aefb; --error: #ff5252;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--bg-hover) transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+        body {
+            background-color: var(--bg-body); color: var(--text-primary);
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex; justify-content: center; align-items: stretch; height: 100vh; padding: 1.5rem;
+        }
+        .container {
+            background: var(--bg-container); border: 1px solid var(--border); border-radius: 12px;
+            width: 100%; max-width: 1000px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 1rem; font-weight: 500; letter-spacing: 0.3px; }
+        .btn-action {
+            background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border);
+            padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.15s ease;
+        }
+        .btn-action:hover { background: var(--bg-hover); border-color: var(--border-hover); }
+        .editor-section { display: flex; flex-direction: column; flex-grow: 1; }
+        .input-panel { height: 30%; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; }
+        .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; height: 70%; background: var(--border); }
+        .panel { background: var(--bg-container); display: flex; flex-direction: column; height: 100%; }
+        .panel-header {
+            padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.75rem; 
+            font-weight: 600; color: var(--text-secondary); text-transform: uppercase; background: var(--bg-element);
+        }
+        textarea {
+            width: 100%; flex-grow: 1; background: transparent; color: var(--text-primary);
+            border: none; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; 
+            line-height: 1.6; resize: none; outline: none; word-break: break-all;
+        }
+        textarea.output { color: var(--accent); }
+        .error-bar { background: rgba(255, 82, 82, 0.1); color: var(--error); padding: 8px 1.5rem; font-size: 0.85rem; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>JWT Decoder</h2>
+            <button class="btn-action" onclick="clearAll()">Pulisci</button>
+        </div>
+        <div class="error-bar" id="error-bar">Token JWT non valido.</div>
+        <div class="editor-section">
+            <div class="input-panel">
+                <div class="panel-header" style="background:transparent;">Encoded Token (Incolla qui)</div>
+                <textarea id="jwt-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+            </div>
+            <div class="output-grid">
+                <div class="panel">
+                    <div class="panel-header">Header</div>
+                    <textarea id="jwt-header" class="output" readonly></textarea>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Payload</div>
+                    <textarea id="jwt-payload" class="output" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const input = document.getElementById('jwt-input');
+        const headerOut = document.getElementById('jwt-header');
+        const payloadOut = document.getElementById('jwt-payload');
+        const errorBar = document.getElementById('error-bar');
+
+        function decodeBase64Url(str) {
+            str = str.replace(/-/g, '+').replace(/_/g, '/');
+            const pad = str.length % 4;
+            if(pad) str += new Array(5-pad).join('=');
+            return decodeURIComponent(atob(str).split('').map(c => 
+                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+            ).join(''));
+        }
+
+        input.addEventListener('input', () => {
+            const token = input.value.trim();
+            if (!token) { clearAll(false); return; }
+
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                errorBar.style.display = 'block';
+                headerOut.value = ""; payloadOut.value = "";
+                return;
+            }
+
+            try {
+                const header = JSON.parse(decodeBase64Url(parts[0]));
+                const payload = JSON.parse(decodeBase64Url(parts[1]));
+                
+                headerOut.value = JSON.stringify(header, null, 4);
+                payloadOut.value = JSON.stringify(payload, null, 4);
+                errorBar.style.display = 'none';
+            } catch (e) {
+                errorBar.style.display = 'block';
+                headerOut.value = ""; payloadOut.value = "";
+            }
+        });
+
+        function clearAll(clearInput = true) {
+            if(clearInput) input.value = "";
+            headerOut.value = "";
+            payloadOut.value = "";
+            errorBar.style.display = 'none';
+            if(clearInput) input.focus();
+        }
+    </script>
+</body>
+</html>

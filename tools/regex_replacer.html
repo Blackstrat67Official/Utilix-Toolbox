@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Regex Replacer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#81c995;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1200px;display:flex;flex-direction:column;overflow:hidden;}
+.toolbar{padding:1rem 1.5rem;background:var(--bg-element);border-bottom:1px solid var(--border);display:flex;gap:15px;}
+input{background:#000;color:var(--text-primary);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-family:'JetBrains Mono',monospace;outline:none;flex:1;}
+input::placeholder{color:#555;}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex-grow:1;}
+textarea{background:transparent;color:#aaa;border:none;padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;resize:none;outline:none;}
+.left{border-right:1px solid var(--border);}
+textarea.output{color:var(--accent);}
+</style></head><body>
+<div class="container">
+    <div class="toolbar">
+        <input type="text" id="rgx" placeholder="Regex: (\d{4})-(\d{2})-(\d{2})" value="(\d{4})-(\d{2})-(\d{2})">
+        <input type="text" id="rep" placeholder="Sostituisci: $3/$2/$1" value="$3/$2/$1">
+    </div>
+    <div class="grid">
+        <textarea id="in" class="left" placeholder="Input originale...">Data uno: 2023-12-31&#10;Data due: 2024-01-15</textarea>
+        <textarea id="out" class="output" readonly></textarea>
+    </div>
+</div>
+<script>
+    const i=document.getElementById('in'), o=document.getElementById('out'), r=document.getElementById('rgx'), p=document.getElementById('rep');
+    function run() {
+        if(!r.value) { o.value = i.value; return; }
+        try { const rx = new RegExp(r.value, 'gm'); o.value = i.value.replace(rx, p.value); } 
+        catch(e) { o.value = "Errore di sintassi Regex"; }
+    }
+    [i, r, p].forEach(el => el.addEventListener('input', run)); run();
+</script></body></html>

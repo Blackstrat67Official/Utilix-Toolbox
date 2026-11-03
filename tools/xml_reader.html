@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>XML Advanced Reader</title>
+    <!-- Importiamo un font monospace moderno per il codice, o usa il fallback di sistema -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #000000;
+            --bg-container: #0a0a0a;
+            --bg-element: #141414;
+            --bg-hover: #1f1f1f;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+            --text-primary: #ededed;
+            --text-secondary: #888888;
+            --accent: #8ab4f8; /* Blu stile Gemini/Google */
+            --accent-soft: rgba(138, 180, 248, 0.1);
+            --key-color: #fbbc04; /* Giallo morbido per le chiavi */
+            --string-color: #81c995; /* Verde menta per i valori */
+            --attr-color: #e8eaed;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* Scrollbar invisibile/minimale per Webkit */
+            scrollbar-width: thin;
+            scrollbar-color: var(--bg-hover) transparent;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: stretch; /* Riempie lo spazio verticale */
+            height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            background: var(--bg-container);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Evita sbordamenti */
+        }
+
+        /* Header molto pulito */
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h2 { 
+            font-size: 1rem; 
+            font-weight: 500; 
+            color: var(--text-primary); 
+            letter-spacing: 0.3px;
+        }
+
+        /* Pulsanti d'azione primari (es. Nuovo XML) */
+        .btn-action {
+            background: var(--bg-element);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+        .btn-action:hover { 
+            background: var(--bg-hover); 
+            border-color: var(--border-hover);
+        }
+        .btn-action.primary {
+            background: var(--text-primary);
+            color: var(--bg-body);
+            border-color: transparent;
+        }
+        .btn-action.primary:hover {
+            background: #ffffff;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+        }
+
+        /* Contenitore interno con padding */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            padding: 1.5rem;
+            gap: 1rem;
+            overflow: hidden;
+        }
+
+        /* Navigazione a schede (Tabs) ultra minimale */
+        .tabs { 
+            display: flex; 
+            gap: 4px; 
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .tab-btn {
+            background: transparent; 
+            color: var(--text-secondary); 
+            border: none; 
+            padding: 6px 12px;
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 0.85rem; 
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-btn.active { 
+            background: var(--bg-element); 
+            color: var(--text-primary); 
+        }
+        .tab-btn:hover:not(.active) { 
+            color: var(--text-primary); 
+        }
+
+        /* --- SEZIONE INPUT --- */
+        .input-section { 
+            display: flex; 
+            flex-direction: column; 
+            flex-grow: 1; 
+            gap: 1rem; 
+        }
+        
+        textarea {
+            width: 100%; 
+            flex-grow: 1; 
+            background: var(--bg-element); 
+            color: var(--text-primary);
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.85rem; 
+            line-height: 1.5;
+            resize: none; 
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus { border-color: var(--accent); }
+        textarea::placeholder { color: #444; }
+        
+        .file-drop {
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            border: 1px dashed var(--border-hover); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            color: var(--text-secondary);
+            transition: all 0.2s; 
+            background: rgba(20, 20, 20, 0.3);
+            font-size: 0.9rem;
+        }
+        .file-drop:hover { 
+            border-color: var(--accent); 
+            color: var(--accent); 
+            background: var(--accent-soft); 
+        }
+        .file-drop input[type="file"] { display: none; }
+
+        /* --- SEZIONE OUTPUT --- */
+        .output-section { 
+            display: none; 
+            flex-direction: column; 
+            flex-grow: 1; 
+            overflow: hidden; 
+        }
+        
+        .output-header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .result-box {
+            flex-grow: 1; 
+            background: var(--bg-body); /* Sfondo più scuro per il codice */
+            border: 1px solid var(--border); 
+            border-radius: 8px;
+            padding: 1rem; 
+            overflow: auto; 
+            display: none;
+        }
+        .result-box.active { display: block; }
+        
+        /* Font monospazio per entrambi i risultati (come richiesto) */
+        pre, .tree-view { 
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; 
+            font-size: 0.85rem; 
+            line-height: 1.6;
+        }
+        
+        pre { margin: 0; color: var(--accent); }
+
+        /* Stile Albero Strutturato (Senza Tag) - MOLTO PIÙ PULITO */
+        details { margin: 2px 0; }
+        
+        /* Rimuove la freccia nativa brutta e la rimpiazza con un simbolo monospazio */
+        details > summary {
+            cursor: pointer; 
+            color: var(--accent); 
+            font-weight: 500; 
+            outline: none; 
+            user-select: none; 
+            list-style: none; /* Rimuove freccia nativa */
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        details > summary::-webkit-details-marker { display: none; }
+        
+        details > summary::before {
+            content: '+';
+            color: var(--text-secondary);
+            font-weight: bold;
+            display: inline-block;
+            width: 12px;
+        }
+        details[open] > summary::before { content: '-'; }
+
+        .tree-children { 
+            margin-left: 20px; 
+            border-left: 1px solid var(--border); /* Linea guida sottilissima */
+            padding-left: 12px; 
+            margin-top: 2px;
+            margin-bottom: 8px;
+        }
+        
+        .tree-leaf { 
+            display: flex; 
+            gap: 8px; 
+            margin: 4px 0; 
+            align-items: baseline; 
+            padding-left: 20px; /* Allinea con i nodi padre */
+        }
+        
+        .leaf-key { color: var(--key-color); }
+        .leaf-value { color: var(--string-color); }
+        
+        .attr-badge { 
+            color: var(--attr-color); 
+            font-size: 0.75rem; 
+            opacity: 0.6;
+            margin-left: 4px;
+        }
+        
+        .punctuation { color: var(--text-secondary); }
+
+        .error-msg { 
+            color: #ff5252; 
+            font-size: 0.85rem; 
+            display: none; 
+            padding: 10px;
+            background: rgba(255, 82, 82, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 82, 82, 0.2);
+            text-align: center;
+        }
+        
+        /* Controlli inferiori (Analizza) */
+        .footer-controls {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Fisso -->
+        <div class="header">
+            <h2>XML Reader Avanzato</h2>
+            <button class="btn-action" onclick="resetTool()" id="reset-btn" style="display:none; visibility: hidden;">Nuovo Documento</button>
+        </div>
+
+        <div class="content-area">
+            <!-- Sezione di Input -->
+            <div class="input-section" id="input-section">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchInput('text')" id="tab-text">Testo Grezzo</button>
+                    <button class="tab-btn" onclick="switchInput('file')" id="tab-file">Carica File</button>
+                </div>
+
+                <textarea id="xml-input" placeholder="Incolla il codice XML qui..." spellcheck="false"></textarea>
+                
+                <label class="file-drop" id="file-area" style="display:none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.7;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Trascina un file .xml qui o clicca per esplorare</span>
+                    <input type="file" id="file-input" accept=".xml">
+                </label>
+
+                <div class="error-msg" id="error-msg">Errore di validazione. Controlla la sintassi del tuo XML.</div>
+                
+                <div class="footer-controls">
+                    <button class="btn-action primary" onclick="analyzeXML()">Analizza Struttura</button>
+                </div>
+            </div>
+
+            <!-- Sezione di Output -->
+            <div class="output-section" id="output-section">
+                <div class="output-header">
+                    <div class="tabs" style="margin: 0; border: none; padding: 0;">
+                        <button class="tab-btn active" onclick="switchOutput('tree')" id="out-tab-tree">Vista Strutturata</button>
+                        <button class="tab-btn" onclick="switchOutput('code')" id="out-tab-code">Sorgente Formattato</button>
+                    </div>
+                    <button class="btn-action" onclick="copyCode()" id="copy-btn" style="display:none;">Copia Testo</button>
+                </div>
+
+                <!-- Vista Albero (Ora in Monospazio) -->
+                <div class="result-box active tree-view" id="view-tree"></div>
+
+                <!-- Vista Codice Sorgente -->
+                <div class="result-box" id="view-code">
+                    <pre id="xml-formatted-output"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentRawXml = "";
+
+        // Gestione schede (Input)
+        function switchInput(mode) {
+            document.getElementById('tab-text').classList.toggle('active', mode === 'text');
+            document.getElementById('tab-file').classList.toggle('active', mode === 'file');
+            document.getElementById('xml-input').style.display = mode === 'text' ? 'block' : 'none';
+            document.getElementById('file-area').style.display = mode === 'file' ? 'flex' : 'none';
+            document.getElementById('error-msg').style.display = 'none';
+        }
+
+        // Gestione schede (Output)
+        function switchOutput(mode) {
+            document.getElementById('out-tab-tree').classList.toggle('active', mode === 'tree');
+            document.getElementById('out-tab-code').classList.toggle('active', mode === 'code');
+            document.getElementById('view-tree').classList.toggle('active', mode === 'tree');
+            document.getElementById('view-code').classList.toggle('active', mode === 'code');
+            
+            // Mostra il pulsante copia solo quando siamo nel codice
+            const copyBtn = document.getElementById('copy-btn');
+            if(mode === 'code') {
+                copyBtn.style.display = 'block';
+                copyBtn.onclick = copyCode;
+            } else {
+                copyBtn.style.display = 'block';
+                copyBtn.onclick = copyTreeText; // Se siamo nella vista albero, copiamo una versione testuale pulita
+                copyBtn.innerText = "Copia Dati";
+            }
+        }
+
+        // Torna alla schermata iniziale
+        function resetTool() {
+            document.getElementById('input-section').style.display = 'flex';
+            document.getElementById('output-section').style.display = 'none';
+            
+            const resetBtn = document.getElementById('reset-btn');
+            resetBtn.style.display = 'none';
+            resetBtn.style.visibility = 'hidden';
+            
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('file-input').value = "";
+            currentRawXml = "";
+        }
+
+        // Lettura file
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                currentRawXml = evt.target.result;
+                document.getElementById('xml-input').value = currentRawXml;
+                analyzeXML();
+            };
+            reader.readAsText(file);
+        });
+
+        // Analisi XML principale
+        function analyzeXML() {
+            if (document.getElementById('xml-input').style.display !== 'none') {
+                currentRawXml = document.getElementById('xml-input').value.trim();
+            }
+
+            if (!currentRawXml) return;
+
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(currentRawXml, "text/xml");
+            
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                document.getElementById('error-msg').style.display = "block";
+                return;
+            }
+
+            document.getElementById('error-msg').style.display = "none";
+            
+            // 1. Formatta codice sorgente
+            document.getElementById('xml-formatted-output').textContent = formatXmlString(currentRawXml);
+            
+            // 2. Genera vista ad albero
+            const treeContainer = document.getElementById('view-tree');
+            treeContainer.innerHTML = '';
+            
+            // Gestisce casi in cui ci sono commenti o nodi prima del root
+            const rootNode = xmlDoc.documentElement;
+            treeContainer.appendChild(buildTree(rootNode));
+
+            // Transizione interfaccia
+            document.getElementById('input-section').style.display = 'none';
+            document.getElementById('output-section').style.display = 'flex';
+            
+            const resetBtn = document.getElementById('reset-btn');
+            resetBtn.style.display = 'block';
+            resetBtn.style.visibility = 'visible';
+            
+            switchOutput('tree');
+        }
+
+        // Costruisce la vista strutturata senza tag (con font monospace)
+        function buildTree(node) {
+            // Filtriamo solo i nodi elemento (ignorando testo vuoto o commenti)
+            const elementChildren = Array.from(node.childNodes).filter(n => n.nodeType === Node.ELEMENT_NODE);
+            
+            // Formattazione attributi (se presenti) in stile `nome="valore"` testuale
+            let attrsHtml = '';
+            if (node.attributes && node.attributes.length > 0) {
+                let attrList = [];
+                for (let attr of node.attributes) {
+                    attrList.push(`${attr.name}="${attr.value}"`);
+                }
+                attrsHtml = `<span class="attr-badge"> {${attrList.join(', ')}}</span>`;
+            }
+
+            if (elementChildren.length > 0) {
+                // Nodo con figli = Menu a tendina
+                const details = document.createElement('details');
+                details.open = true;
+                
+                const summary = document.createElement('summary');
+                // Nome del nodo + eventuali attributi
+                summary.innerHTML = `<span>${node.nodeName}</span>${attrsHtml}`;
+                details.appendChild(summary);
+
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'tree-children';
+                
+                elementChildren.forEach(child => {
+                    childrenDiv.appendChild(buildTree(child));
+                });
+                
+                details.appendChild(childrenDiv);
+                return details;
+            } else {
+                // Nodo foglia (chiave: valore)
+                const div = document.createElement('div');
+                div.className = 'tree-leaf';
+                // Usiamo span con classi specifiche per colorare chiavi e valori stile JSON
+                div.innerHTML = `<span class="leaf-key">"${node.nodeName}"</span><span class="punctuation">:</span> <span class="leaf-value">"${node.textContent}"</span>${attrsHtml}`;
+                return div;
+            }
+        }
+
+        // Formattatore XML di base (Aggiunge indentazioni)
+        function formatXmlString(xml) {
+            const PADDING = '  '; // 2 spazi invece di 4 per stare più compatti
+            const reg = /(>)(<)(\/*)/g;
+            let pad = 0;
+            let formatted = '';
+            
+            // Normalizza newline
+            xml = xml.replace(/\r?\n/g, '').replace(reg, '$1\r\n$2$3');
+            
+            xml.split('\r\n').forEach((node) => {
+                let indent = 0;
+                if (node.match( /.+<\/\w[^>]*>$/ )) indent = 0; // Apri e chiudi su stessa riga
+                else if (node.match( /^<\/\w/ )) { if (pad !== 0) pad -= 1; } // Tag chiusura
+                else if (node.match( /^<\w[^>]*[^\/]>.*$/ )) indent = 1; // Tag apertura
+                else indent = 0;
+                
+                formatted += PADDING.repeat(pad) + node + '\n';
+                pad += indent;
+            });
+            return formatted.trim();
+        }
+
+        // Funzioni di Copia
+        function copyCode() {
+            const text = document.getElementById('xml-formatted-output').textContent;
+            navigator.clipboard.writeText(text);
+            feedbackCopyButton("Copiato!");
+        }
+        
+        function copyTreeText() {
+            // Un modo semplice per copiare i dati testuali dell'albero senza l'HTML
+            const text = document.getElementById('view-tree').innerText;
+            // Rimuove i "+" e "-" dei menu a tendina che vengono catturati da innerText
+            const cleanText = text.replace(/^[+-]\s/gm, ''); 
+            navigator.clipboard.writeText(cleanText);
+            feedbackCopyButton("Dati Copiati!");
+        }
+
+        function feedbackCopyButton(msg) {
+            const btn = document.getElementById('copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = msg;
+            btn.style.borderColor = "var(--accent)";
+            btn.style.color = "var(--accent)";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.borderColor = "";
+                btn.style.color = "";
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

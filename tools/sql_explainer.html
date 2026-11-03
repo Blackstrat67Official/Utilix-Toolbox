@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Deep Explainer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-body: #000000;
+            --bg-container: #0a0a0a;
+            --bg-element: #121212;
+            --bg-card: #161616;
+            --bg-hover: #1f1f1f;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            --text-primary: #ededed;
+            --text-secondary: #888888;
+            --accent: #ba68c8;
+            --accent-dim: rgba(186, 104, 200, 0.15);
+            --blue: #64b5f6;
+            --green: #81c995;
+            --orange: #ffb74d;
+            --red: #e57373;
+            --cyan: #4dd0e1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: #2a2a2a transparent;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444444; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            height: 100vh;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .container {
+            background: var(--bg-container);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 1600px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.85rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            background: #0d0d0d;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .badge-pro {
+            font-size: 0.65rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(186, 104, 200, 0.3);
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            background: var(--bg-element);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-action:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-hover);
+        }
+
+        .btn-accent {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-color: rgba(186, 104, 200, 0.35);
+        }
+
+        .btn-accent:hover {
+            background: rgba(186, 104, 200, 0.25);
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 42% 58%;
+            gap: 1px;
+            flex-grow: 1;
+            min-height: 0;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .panel {
+            background: var(--bg-container);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0.65rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            background: #0d0d0d;
+        }
+
+        textarea {
+            width: 100%;
+            flex-grow: 1;
+            min-height: 0;
+            background: transparent;
+            color: var(--text-primary);
+            border: none;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.65;
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        /* Pannello di Output Strutturato */
+        .human-output {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #d8d8d8;
+            padding: 1.25rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex-grow: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Card per ogni blocco (CTE, Transazione, Query Principale) */
+        .step-card {
+            background: var(--bg-element);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .step-card-header {
+            background: var(--bg-card);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .step-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: #ffffff;
+        }
+
+        .step-badge {
+            font-size: 0.68rem;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-cte { background: rgba(100, 181, 246, 0.15); color: var(--blue); border: 1px solid rgba(100, 181, 246, 0.3); }
+        .badge-recursive { background: rgba(255, 183, 77, 0.15); color: var(--orange); border: 1px solid rgba(255, 183, 77, 0.3); }
+        .badge-main { background: rgba(129, 201, 149, 0.15); color: var(--green); border: 1px solid rgba(129, 201, 149, 0.3); }
+        .badge-tx { background: rgba(229, 115, 115, 0.15); color: var(--red); border: 1px solid rgba(229, 115, 115, 0.3); }
+
+        .step-body {
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Sezioni interne della query (FROM, JOIN, SELECT, WHERE, ecc.) */
+        .clause-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-left: 10px;
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .clause-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-secondary);
+        }
+
+        .clause-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .clause-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
+        .col-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .code-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            background: #1e1e1e;
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            word-break: break-all;
+        }
+
+        .alias-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            background: rgba(129, 201, 149, 0.12);
+            color: var(--green);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .table-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background: rgba(100, 181, 246, 0.14);
+            color: var(--blue);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .sub-details {
+            margin-top: 6px;
+            padding-left: 14px;
+            border-left: 2px solid rgba(186, 104, 200, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.82rem;
+            color: #bdbdbd;
+        }
+
+        .union-divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(255, 183, 77, 0.1);
+            border: 1px dashed rgba(255, 183, 77, 0.35);
+            border-radius: 6px;
+            color: var(--orange);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .material-symbols-outlined {
+            font-size: 18px;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+
+        .empty-state {
+            color: #555;
+            text-align: center;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <span class="material-symbols-outlined" style="color: var(--accent); font-size: 22px;">psychology</span>
+                <h2>SQL Deep Explainer</h2>
+                <span class="badge-pro">Analisi Riga per Riga</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-action btn-accent" onclick="loadComplexSample()">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">science</span>
+                    Carica Query Complessa (sql.txt)
+                </button>
+                <button class="btn-action" onclick="loadTransactionSample()">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">sync_alt</span>
+                    Esempio Transazione
+                </button>
+                <button class="btn-action" onclick="clearAll()">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">delete_sweep</span>
+                    Pulisci
+                </button>
+            </div>
+        </div>
+
+        <div class="editor-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Query SQL (Input)</span>
+                    <span id="line-counter" style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;">0 righe</span>
+                </div>
+                <textarea id="sql-input" placeholder="Incolla qui qualsiasi query SQL (anche con WITH RECURSIVE, Window Functions, CASE WHEN, JSONB, Transazioni)..." spellcheck="false"></textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Analisi Dettagliata Passo-Passo</span>
+                    <button class="btn-action" id="copy-btn" onclick="copyExplanation()" style="padding: 3px 10px; font-size: 0.72rem;">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                        Copia Testo
+                    </button>
+                </div>
+                <div id="explanation-output" class="human-output">
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined" style="font-size: 42px; color: #333;">manage_search</span>
+                        <p>Incolla una query SQL a sinistra oppure clicca su <b>"Carica Query Complessa"</b> per vedere l'analisi anatomica di ogni singola istruzione.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('sql-input');
+        const output = document.getElementById('explanation-output');
+        const lineCounter = document.getElementById('line-counter');
+
+        // ============================================================================
+        // UTILITÀ DI PARSING TOP-LEVEL (Ignora parentesi annidate e stringhe)
+        // ============================================================================
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function codePill(text) {
+            return `<span class="code-pill">${escapeHtml(text.trim())}</span>`;
+        }
+
+        function aliasPill(text) {
+            return `<span class="alias-pill">${escapeHtml(text.trim())}</span>`;
+        }
+
+        function tablePill(text) {
+            return `<span class="table-pill">${escapeHtml(text.trim())}</span>`;
+        }
+
+        // Rimuove commenti SQL (-- e /* */) preservando le stringhe
+        function stripComments(sql) {
+            return sql
+                .replace(/\/\*[\s\S]*?\*\//g, ' ')
+                .replace(/--.*$/gm, ' ')
+                .trim();
+        }
+
+        // Rimuove le parentesi esterne se racchiudono l'intera stringa
+        function unwrapOuterParens(str) {
+            str = str.trim();
+            while (str.startsWith('(') && str.endsWith(')')) {
+                let depth = 0;
+                let wrapsAll = true;
+                let inQuote = false;
+                for (let i = 0; i < str.length; i++) {
+                    const ch = str[i];
+                    if (ch === "'" && str[i - 1] !== '\\') inQuote = !inQuote;
+                    if (!inQuote) {
+                        if (ch === '(') depth++;
+                        else if (ch === ')') {
+                            depth--;
+                            if (depth === 0 && i < str.length - 1) {
+                                wrapsAll = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (wrapsAll) str = str.slice(1, -1).trim();
+                else break;
+            }
+            return str;
+        }
+
+        // Divide una stringa per un separatore (es. ',') solo a livello 0 di parentesi/virgolette
+        function splitTopLevel(str, delimiter = ',') {
+            const results = [];
+            let current = '';
+            let depth = 0;
+            let bracketDepth = 0;
+            let inSingleQuote = false;
+
+            for (let i = 0; i < str.length; i++) {
+                const ch = str[i];
+                if (ch === "'" && str[i - 1] !== '\\') {
+                    inSingleQuote = !inSingleQuote;
+                }
+                if (!inSingleQuote) {
+                    if (ch === '(') depth++;
+                    else if (ch === ')') depth = Math.max(0, depth - 1);
+                    else if (ch === '[') bracketDepth++;
+                    else if (ch === ']') bracketDepth = Math.max(0, bracketDepth - 1);
+                }
+
+                if (!inSingleQuote && depth === 0 && bracketDepth === 0 && str.slice(i, i + delimiter.length) === delimiter) {
+                    results.push(current.trim());
+                    current = '';
+                    i += delimiter.length - 1;
+                } else {
+                    current += ch;
+                }
+            }
+            if (current.trim()) results.push(current.trim());
+            return results;
+        }
+
+        // Divide per una keyword (es. UNION ALL, AND, OR) solo a livello 0 di parentesi
+        function splitByKeywordTopLevel(str, regexPattern) {
+            const results = [];
+            let depth = 0;
+            let inQuote = false;
+            let lastIndex = 0;
+
+            for (let i = 0; i < str.length; i++) {
+                const ch = str[i];
+                if (ch === "'" && str[i - 1] !== '\\') inQuote = !inQuote;
+                if (!inQuote) {
+                    if (ch === '(' || ch === '[') depth++;
+                    else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+                }
+                if (!inQuote && depth === 0) {
+                    const sub = str.slice(i);
+                    const match = sub.match(regexPattern);
+                    if (match && match.index === 0) {
+                        // Verifica che il carattere precedente non sia alfanumerico
+                        const prevChar = i > 0 ? str[i - 1] : ' ';
+                        if (/[\s\(\)]/.test(prevChar)) {
+                            results.push({
+                                text: str.slice(lastIndex, i).trim(),
+                                separator: match[0].trim()
+                            });
+                            i += match[0].length - 1;
+                            lastIndex = i + 1;
+                        }
+                    }
+                }
+            }
+            results.push({ text: str.slice(lastIndex).trim(), separator: null });
+            return results;
+        }
+
+        // ============================================================================
+        // TRADUTTORE DI CONDIZIONI E OPERATORI LOGICI
+        // ============================================================================
+
+        function explainConditionText(cond) {
+            let c = unwrapOuterParens(cond.trim().replace(/\s+/g, ' '));
+
+            // Riconoscimento casi comuni specifici
+            if (/^NOT\s+(.+?)\s*=\s*ANY\s*\((.+)\)$/i.test(c)) {
+                const m = c.match(/^NOT\s+(.+?)\s*=\s*ANY\s*\((.+)\)$/i);
+                return `Verifica anti-ciclo (prevenzione loop infiniti): controlla che ${codePill(m[1])} <b>non sia già presente</b> dentro l'array/percorso ${codePill(m[2])}.`;
+            }
+            if (/^(.+?)\s+IS\s+NULL$/i.test(c)) {
+                const m = c.match(/^(.+?)\s+IS\s+NULL$/i);
+                return `Il campo ${codePill(m[1])} deve essere <b>vuoto / assente</b> (<code>IS NULL</code>).`;
+            }
+            if (/^(.+?)\s+IS\s+NOT\s+NULL$/i.test(c)) {
+                const m = c.match(/^(.+?)\s+IS\s+NOT\s+NULL$/i);
+                return `Il campo ${codePill(m[1])} deve essere <b>valorizzato</b> (non nullo, <code>IS NOT NULL</code>).`;
+            }
+            if (/^(.+?)\s+IN\s*\((.+)\)$/i.test(c)) {
+                const m = c.match(/^(.+?)\s+IN\s*\((.+)\)$/i);
+                return `Il valore di ${codePill(m[1])} rientra nell'elenco dei valori ammessi: ${codePill(m[2])}.`;
+            }
+            if (/^(.+?)\s+NOT\s+IN\s*\((.+)\)$/i.test(c)) {
+                const m = c.match(/^(.+?)\s+NOT\s+IN\s*\((.+)\)$/i);
+                return `Il valore di ${codePill(m[1])} <b>non deve appartenere</b> all'elenco: ${codePill(m[2])}.`;
+            }
+            if (/^(.+?)\s+BETWEEN\s+(.+?)\s+AND\s+(.+)$/i.test(c)) {
+                const m = c.match(/^(.+?)\s+BETWEEN\s+(.+?)\s+AND\s+(.+)$/i);
+                return `Il valore di ${codePill(m[1])} è compreso nell'intervallo tra ${codePill(m[2])} e ${codePill(m[3])}.`;
+            }
+
+            // Operatori di confronto binari (>=, <=, !=, <>, =, >, <)
+            const opMatch = c.match(/^(.+?)\s*(>=|<=|<>|!=|=|>|<)\s*(.+)$/);
+            if (opMatch) {
+                const left = opMatch[1].trim();
+                const op = opMatch[2];
+                const right = opMatch[3].trim();
+                const opMap = {
+                    '=': 'è esattamente uguale a',
+                    '!=': 'è diverso da',
+                    '<>': 'è diverso da',
+                    '>': 'è strettamente maggiore di',
+                    '<': 'è strettamente minore di',
+                    '>=': 'è maggiore o uguale a',
+                    '<=': 'è minore o uguale a'
+                };
+                let extra = '';
+                if (/CURRENT_DATE\s*-\s*INTERVAL\s*'([^']+)'/i.test(right)) {
+                    const im = right.match(/CURRENT_DATE\s*-\s*INTERVAL\s*'([^']+)'/i);
+                    extra = ` <i>(data odierna meno un intervallo di ${im[1]})</i>`;
+                }
+                return `${codePill(left)} ${opMap[op] || op} ${codePill(right)}${extra}.`;
+            }
+
+            return `Condizione valutata: ${codePill(c)}.`;
+        }
+
+        // Scompone un blocco WHERE o HAVING in tutte le sue sotto-condizioni AND / OR
+        function explainWhereBlock(whereRaw) {
+            const parts = splitByKeywordTopLevel(whereRaw, /^(AND|OR)\b/i);
+            const items = [];
+
+            parts.forEach((p, idx) => {
+                let text = p.text.trim();
+                const nextLogic = p.separator ? p.separator.toUpperCase() : null;
+
+                // Controlla se è un blocco parentesizzato con OR/AND interni
+                const unwrapped = unwrapOuterParens(text);
+                if (unwrapped !== text && /\b(AND|OR)\b/i.test(unwrapped)) {
+                    const innerParts = splitByKeywordTopLevel(unwrapped, /^(AND|OR)\b/i);
+                    const subExpl = innerParts.map((ip, i) => {
+                        const connector = ip.separator ? ` <b>[${ip.separator.toUpperCase()}]</b> ` : '';
+                        return `${explainConditionText(ip.text)}${connector}`;
+                    }).join(' ');
+                    items.push(`<div><b>Blocco logico combinato:</b> ( ${subExpl} )</div>`);
+                } else {
+                    items.push(`<div>${explainConditionText(text)}</div>`);
+                }
+
+                if (nextLogic) {
+                    const logicLabel = nextLogic === 'AND'
+                        ? '<span style="color: var(--green); font-size:0.75rem; font-weight:700;">[ E INOLTRE (AND) ]</span>'
+                        : '<span style="color: var(--orange); font-size:0.75rem; font-weight:700;">[ OPPURE (OR) ]</span>';
+                    items.push(logicLabel);
+                }
+            });
+
+            return items.join('');
+        }
+
+        // ============================================================================
+        // ANALIZZATORE PROFONDO DI ESPRESSIONI, FUNZIONI, WINDOW E CASE WHEN
+        // ============================================================================
+
+        function analyzeColumnExpression(rawCol) {
+            const normalized = rawCol.replace(/\s+/g, ' ').trim();
+
+            // 1. Estrai eventuale ALIAS a livello 0 (es. "... AS nome_colonna")
+            let expr = normalized;
+            let alias = null;
+
+            const asParts = splitByKeywordTopLevel(normalized, /^AS\b/i);
+            if (asParts.length > 1) {
+                alias = asParts[asParts.length - 1].text.trim();
+                expr = asParts.slice(0, -1).map(p => p.text).join(' AS ').trim();
+            }
+
+            const details = [];
+            let mainSummary = '';
+
+            // 2. Controllo se è un wildcard (es. * o tabella.*)
+            if (/^([a-zA-Z0-9_]+\.)?\*$/.test(expr)) {
+                const prefix = expr.includes('.') ? `dalla tabella/vista ${tablePill(expr.split('.')[0])}` : 'da tutte le sorgenti';
+                mainSummary = `Seleziona <b>tutte le colonne disponibili</b> (${codePill(expr)}) ${prefix}.`;
+                return { expr, alias, mainSummary, details };
+            }
+
+            // 3. Controllo Type Casting (::NUMERIC, ::JSONB, ecc.)
+            if (/::([a-zA-Z0-9_]+)/.test(expr)) {
+                const casts = [...expr.matchAll(/::([a-zA-Z0-9_]+)/g)].map(m => m[1].toUpperCase());
+                details.push(`<b>Conversione di Tipo (Cast):</b> Forza la conversione del valore nel tipo di dato PostgreSQL ${casts.map(c => codePill(c)).join(', ')}.`);
+            }
+
+            // 4. Analisi CASE WHEN ... THEN ... ELSE ... END
+            if (/\bCASE\b/i.test(expr) && /\bWHEN\b/i.test(expr)) {
+                const caseMatch = expr.match(/\bCASE\b([\s\S]+?)\bEND\b/i);
+                if (caseMatch) {
+                    const innerCase = caseMatch[1].trim();
+                    const whenRegex = /\bWHEN\s+([\s\S]+?)\s+THEN\s+([\s\S]+?)(?=\bWHEN\b|\bELSE\b|$)/gi;
+                    let wm;
+                    const branches = [];
+                    while ((wm = whenRegex.exec(innerCase)) !== null) {
+                        branches.push(`<li>Se si verifica ${explainConditionText(wm[1])} &rarr; restituisce ${codePill(wm[2])}.</li>`);
+                    }
+                    const elseMatch = innerCase.match(/\bELSE\s+([\s\S]+)$/i);
+                    if (elseMatch) {
+                        branches.push(`<li>In tutti gli altri casi (<code>ELSE</code>) &rarr; restituisce il valore di default ${codePill(elseMatch[1])}.</li>`);
+                    }
+                    details.push(`<b>Albero Decisionale (<code>CASE WHEN</code>):</b><ul style="margin-left: 16px; margin-top: 4px; display:flex; flex-direction:column; gap:3px;">${branches.join('')}</ul>`);
+                }
+            }
+
+            // 5. Analisi Window Functions: OVER (PARTITION BY ... ORDER BY ...)
+            if (/\bOVER\s*\(/i.test(expr)) {
+                const overRegex = /([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*(?:FILTER\s*\(\s*WHERE\s+([^)]+)\))?\s*OVER\s*\(([^)]*)\)/gi;
+                let om;
+                let foundOver = false;
+                while ((om = overRegex.exec(expr)) !== null) {
+                    foundOver = true;
+                    const fnName = om[1].toUpperCase();
+                    const fnArg = om[2].trim();
+                    const filterCond = om[3];
+                    const overClause = om[4].trim();
+
+                    let fnDesc = `Esegue la funzione finestra <code>${fnName}</code>`;
+                    if (fnName === 'LAG') fnDesc = `<b>Funzione Storica (<code>LAG</code>):</b> Recupera il valore di ${codePill(fnArg)} dalla <b>riga precedente</b>`;
+                    else if (fnName === 'LEAD') fnDesc = `<b>Funzione Prospettica (<code>LEAD</code>):</b> Recupera il valore di ${codePill(fnArg)} dalla <b>riga successiva</b>`;
+                    else if (fnName === 'DENSE_RANK') fnDesc = `<b>Classifica Continua (<code>DENSE_RANK</code>):</b> Assegna una posizione in classifica (senza buchi in caso di parità)`;
+                    else if (fnName === 'RANK') fnDesc = `<b>Classifica (<code>RANK</code>):</b> Assegna una posizione in classifica`;
+                    else if (fnName === 'PERCENT_RANK') fnDesc = `<b>Percentile Relativo (<code>PERCENT_RANK</code>):</b> Calcola la posizione percentuale (da 0 a 1) del record rispetto al gruppo`;
+                    else if (fnName === 'NTILE') fnDesc = `<b>Suddivisione in Quantili (<code>NTILE(${fnArg})</code>):</b> Distribuisce le righe in <b>${escapeHtml(fnArg)} fasce/decili</b> di uguale dimensione`;
+                    else if (fnName === 'ROW_NUMBER') fnDesc = `<b>Numerazione Progressiva (<code>ROW_NUMBER</code>):</b> Assegna un indice sequenziale univoco a ogni riga`;
+
+                    const partMatch = overClause.match(/PARTITION\s+BY\s+(.+?)(?=\s+ORDER\s+BY|$)/i);
+                    const ordMatch = overClause.match(/ORDER\s+BY\s+(.+)$/i);
+
+                    let winExplanation = `${fnDesc}`;
+                    if (partMatch) winExplanation += `, separando il calcolo per ogni gruppo di ${codePill(partMatch[1])} (<code>PARTITION BY</code>)`;
+                    if (ordMatch) winExplanation += `, ordinando la finestra interna secondo ${codePill(ordMatch[1])} (<code>ORDER BY</code>)`;
+                    if (filterCond) winExplanation += ` [filtrando solo dove ${explainConditionText(filterCond)}]`;
+
+                    details.push(winExplanation + '.');
+                }
+                if (!foundOver) {
+                    details.push(`<b>Funzione Finestra (<code>OVER</code>):</b> Calcola una metrica analitica sull'intero set di risultati senza raggruppare le righe.`);
+                }
+            }
+
+            // 6. Ordered-Set Aggregates: PERCENTILE_CONT(...) WITHIN GROUP (ORDER BY ...)
+            if (/\bWITHIN\s+GROUP\s*\(/i.test(expr)) {
+                const wgMatch = expr.match(/PERCENTILE_(?:CONT|DISC)\s*\(([^)]+)\)\s*WITHIN\s+GROUP\s*\(\s*ORDER\s+BY\s+([^)]+)\)/i);
+                if (wgMatch) {
+                    const pct = Math.round(parseFloat(wgMatch[1]) * 100);
+                    details.push(`<b>Calcolo Statistico Percentile (<code>PERCENTILE_CONT</code>):</b> Calcola il <b>${pct}° percentile</b> continuo ordinando i valori del gruppo in base a ${codePill(wgMatch[2])}.`);
+                }
+            }
+
+            // 7. Clausola FILTER (WHERE ...) sulle aggregazioni
+            if (/\bFILTER\s*\(\s*WHERE\b/i.test(expr)) {
+                const fMatch = expr.match(/\bFILTER\s*\(\s*WHERE\s+([\s\S]+?)\)/i);
+                if (fMatch) {
+                    details.push(`<b>Aggregazione Condizionata (<code>FILTER</code>):</b> Invece di contare/sommare tutte le righe, include nel calcolo <b>esclusivamente</b> le righe in cui: ${explainConditionText(fMatch[1])}`);
+                }
+            }
+
+            // 8. Funzioni JSONB (JSONB_AGG, JSONB_BUILD_OBJECT)
+            if (/\bJSONB?_BUILD_OBJECT\s*\(/i.test(expr)) {
+                const jbMatch = expr.match(/\bJSONB?_BUILD_OBJECT\s*\(([\s\S]+?)\)/i);
+                if (jbMatch) {
+                    const args = splitTopLevel(jbMatch[1], ',');
+                    const pairs = [];
+                    for (let i = 0; i < args.length; i += 2) {
+                        if (args[i + 1]) {
+                            pairs.push(`${codePill(args[i])}: ${codePill(args[i + 1])}`);
+                        }
+                    }
+                    details.push(`<b>Costruzione Oggetto JSON (<code>JSONB_BUILD_OBJECT</code>):</b> Impacchetta i dati relazionali in un oggetto JSON strutturato con le chiavi: ${pairs.join(', ')}.`);
+                }
+            }
+            if (/\bJSONB?_AGG\s*\(/i.test(expr)) {
+                const isDistinct = /\bJSONB?_AGG\s*\(\s*DISTINCT\b/i.test(expr);
+                details.push(`<b>Aggregazione Array JSON (<code>JSONB_AGG</code>):</b> Raccoglie tutti gli oggetti generati per il gruppo in un unico array JSON${isDistinct ? ' eliminando eventuali duplicati (<code>DISTINCT</code>)' : ''}.`);
+            }
+
+            // 9. Funzioni di Sicurezza NULL (COALESCE, NULLIF)
+            if (/\bCOALESCE\s*\(/i.test(expr)) {
+                const cIdx = expr.toUpperCase().indexOf('COALESCE');
+                const openParen = expr.indexOf('(', cIdx);
+                if (openParen !== -1) {
+                    let depth = 0, endParen = -1, inQ = false;
+                    for (let i = openParen; i < expr.length; i++) {
+                        if (expr[i] === "'" && expr[i - 1] !== '\\') inQ = !inQ;
+                        if (!inQ) {
+                            if (expr[i] === '(') depth++;
+                            else if (expr[i] === ')') {
+                                depth--;
+                                if (depth === 0) { endParen = i; break; }
+                            }
+                        }
+                    }
+                    if (endParen !== -1) {
+                        const inner = expr.slice(openParen + 1, endParen);
+                        const cArgs = splitTopLevel(inner, ',');
+                        if (cArgs.length >= 2) {
+                            details.push(`<b>Protezione da valori NULL (<code>COALESCE</code>):</b> Se il risultato di ${codePill(cArgs[0])} dovesse essere <code>NULL</code> (es. nessun record trovato), restituisce come valore di sicurezza ${codePill(cArgs[cArgs.length - 1])}.`);
+                        }
+                    }
+                }
+            }
+
+            if (/\bNULLIF\s*\(/i.test(expr)) {
+                details.push(`<b>Prevenzione Divisione per Zero (<code>NULLIF</code>):</b> Trasforma il denominatore in <code>NULL</code> se è uguale a <code>0</code>, evitando che la query vada in crash matematico.`);
+            }
+
+            // 10. Funzioni Temporali (DATE_TRUNC, EXTRACT, INTERVAL)
+            if (/\bDATE_TRUNC\s*\(/i.test(expr)) {
+                const dm = expr.match(/\bDATE_TRUNC\s*\(\s*'([^']+)'\s*,\s*([^)]+)\)/i);
+                if (dm) {
+                    details.push(`<b>Normalizzazione Data (<code>DATE_TRUNC</code>):</b> Tronca la data ${codePill(dm[2])} all'inizio del periodo <b>'${escapeHtml(dm[1])}'</b> (es. primo giorno del mese).`);
+                }
+            }
+            if (/\bEXTRACT\s*\(\s*EPOCH\s+FROM\b/i.test(expr)) {
+                details.push(`<b>Calcolo Durata Temporale (<code>EXTRACT EPOCH</code>):</b> Calcola la differenza tra due timestamp in secondi totali e la divide per <code>86400.0</code> (secondi in un giorno) per ottenere il numero esatto di <b>giorni</b> trascorsi.`);
+            }
+
+            // 11. Aggregazioni Booleane e Standard (BOOL_AND, BOOL_OR, SUM, COUNT, AVG, MIN, MAX, ROUND)
+            if (/\bBOOL_AND\s*\(/i.test(expr)) {
+                const bm = expr.match(/\bBOOL_AND\s*\(([\s\S]+?)\)/i);
+                details.push(`<b>Verifica Universale (<code>BOOL_AND</code>):</b> Restituisce <code>TRUE</code> solo se <b>tutte le righe</b> del gruppo rispettano la condizione: ${ bm ? explainConditionText(bm[1]) : '' }`);
+            }
+            if (/\bBOOL_OR\s*\(/i.test(expr)) {
+                const bm = expr.match(/\bBOOL_OR\s*\(([\s\S]+?)\)/i);
+                details.push(`<b>Verifica Esistenziale (<code>BOOL_OR</code>):</b> Restituisce <code>TRUE</code> se <b>almeno una riga</b> del gruppo rispetta la condizione: ${ bm ? explainConditionText(bm[1]) : '' }`);
+            }
+            if (/\bROUND\s*\(/i.test(expr)) {
+                const rm = expr.match(/,\s*(\d+)\s*\)\s*(?:::|$)/);
+                details.push(`<b>Arrotondamento (<code>ROUND</code>):</b> Arrotonda il valore numerico calcolato${rm ? ` a <b>${rm[1]} cifre decimali</b>` : ''}.`);
+            }
+
+            // 12. Sintesi principale dell'espressione
+            if (/^COUNT\s*\(\s*DISTINCT\s+([^)]+)\)/i.test(expr)) {
+                const m = expr.match(/^COUNT\s*\(\s*DISTINCT\s+([^)]+)\)/i);
+                mainSummary = `Conta il numero di valori <b>unici e distinti</b> di ${codePill(m[1])}.`;
+            } else if (/^COUNT\s*\(\s*\*\s*\)/i.test(expr)) {
+                mainSummary = `Conta il <b>numero totale di righe</b> nel gruppo.`;
+            } else if (/^COUNT\s*\(([^)]+)\)/i.test(expr)) {
+                const m = expr.match(/^COUNT\s*\(([^)]+)\)/i);
+                mainSummary = `Conta quante volte è presente il valore di ${codePill(m[1])}.`;
+            } else if (/\bSUM\s*\(/i.test(expr)) {
+                mainSummary = `Calcola la <b>somma totale</b> (<code>SUM</code>) dell'espressione ${codePill(expr)}.`;
+            } else if (/\bAVG\s*\(/i.test(expr)) {
+                mainSummary = `Calcola la <b>media aritmetica</b> (<code>AVG</code>) di ${codePill(expr)}.`;
+            } else if (/\bMIN\s*\(/i.test(expr)) {
+                mainSummary = `Individua il <b>valore minimo</b> (più piccolo o meno recente) di ${codePill(expr)}.`;
+            } else if (/\bMAX\s*\(/i.test(expr)) {
+                mainSummary = `Individua il <b>valore massimo</b> (più grande o più recente) di ${codePill(expr)}.`;
+            } else if (/\bARRAY\s*\[/i.test(expr)) {
+                mainSummary = `Inizializza un <b>Array</b> contenente ${codePill(expr)}.`;
+            } else if (expr.includes('||')) {
+                mainSummary = `Concatena/aggiunge l'elemento ${codePill(expr.split('||')[1])} all'array o percorso esistente ${codePill(expr.split('||')[0])}.`;
+            } else if (/^[a-zA-Z0-9_.]+\s*[\+\-\*\/]\s*/.test(expr)) {
+                mainSummary = `Esegue il calcolo matematico diretto: ${codePill(expr)}.`;
+            } else if (details.length > 0) {
+                mainSummary = `Elabora l'espressione complessa ${codePill(expr)}.`;
+            } else {
+                mainSummary = `Estrae il campo/valore ${codePill(expr)}.`;
+            }
+
+            return { expr, alias, mainSummary, details };
+        }
+
+        // ============================================================================
+        // PARSER DI UNA SINGOLA QUERY SELECT (E DEI SUOI BLOCCHI INTERNI)
+        // ============================================================================
+
+        function parseSingleSelectBlock(sql) {
+            sql = unwrapOuterParens(sql.trim());
+
+            // Trova le posizioni delle clausole principali a livello 0 di parentesi
+            const clauseKeywords = [
+                { key: 'SELECT', regex: /^SELECT\b/i },
+                { key: 'FROM', regex: /^FROM\b/i },
+                { key: 'JOIN', regex: /^(?:INNER\s+JOIN|LEFT\s+(?:OUTER\s+)?JOIN|RIGHT\s+(?:OUTER\s+)?JOIN|FULL\s+(?:OUTER\s+)?JOIN|CROSS\s+JOIN|JOIN)\b/i },
+                { key: 'WHERE', regex: /^WHERE\b/i },
+                { key: 'GROUP BY', regex: /^GROUP\s+BY\b/i },
+                { key: 'HAVING', regex: /^HAVING\b/i },
+                { key: 'ORDER BY', regex: /^ORDER\s+BY\b/i },
+                { key: 'LIMIT', regex: /^LIMIT\b/i },
+                { key: 'OFFSET', regex: /^OFFSET\b/i }
+            ];
+
+            const markers = [];
+            let depth = 0;
+            let inQuote = false;
+
+            for (let i = 0; i < sql.length; i++) {
+                const ch = sql[i];
+                if (ch === "'" && sql[i - 1] !== '\\') inQuote = !inQuote;
+                if (!inQuote) {
+                    if (ch === '(' || ch === '[') depth++;
+                    else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+                }
+                if (!inQuote && depth === 0) {
+                    const prev = i > 0 ? sql[i - 1] : ' ';
+                    if (/[\s\(\)]/.test(prev)) {
+                        const sub = sql.slice(i);
+                        for (const ck of clauseKeywords) {
+                            const m = sub.match(ck.regex);
+                            if (m) {
+                                markers.push({
+                                    type: ck.key,
+                                    rawKeyword: m[0].toUpperCase().replace(/\s+/g, ' '),
+                                    start: i,
+                                    contentStart: i + m[0].length
+                                });
+                                i += m[0].length - 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            const sections = {
+                select: null,
+                from: null,
+                joins: [],
+                where: null,
+                groupBy: null,
+                having: null,
+                orderBy: null,
+                limit: null,
+                offset: null
+            };
+
+            for (let i = 0; i < markers.length; i++) {
+                const curr = markers[i];
+                const nextStart = i + 1 < markers.length ? markers[i + 1].start : sql.length;
+                const content = sql.slice(curr.contentStart, nextStart).trim();
+
+                if (curr.type === 'SELECT') sections.select = content;
+                else if (curr.type === 'FROM') sections.from = content;
+                else if (curr.type === 'JOIN') sections.joins.push({ joinType: curr.rawKeyword, content });
+                else if (curr.type === 'WHERE') sections.where = content;
+                else if (curr.type === 'GROUP BY') sections.groupBy = content;
+                else if (curr.type === 'HAVING') sections.having = content;
+                else if (curr.type === 'ORDER BY') sections.orderBy = content;
+                else if (curr.type === 'LIMIT') sections.limit = content;
+                else if (curr.type === 'OFFSET') sections.offset = content;
+            }
+
+            let html = '';
+
+            // 1. SORGENTE DATI (FROM)
+            if (sections.from) {
+                const fromParts = sections.from.split(/\s+/);
+                const tableName = fromParts[0];
+                const tableAlias = fromParts.length > 1 ? fromParts[fromParts.length - 1] : null;
+                html += `
+                    <div class="clause-section" style="border-left-color: var(--blue);">
+                        <div class="clause-title" style="color: var(--blue);">
+                            <span class="material-symbols-outlined">table_rows</span>
+                            1. Sorgente Dati (FROM)
+                        </div>
+                        <div class="clause-item">
+                            Legge i record di partenza dalla tabella o vista ${tablePill(tableName)}${tableAlias && tableAlias !== tableName ? ` assegnandole l'alias abbreviato ${aliasPill(tableAlias)}` : ''}.
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. COLLEGAMENTI TRA TABELLE (JOIN)
+            if (sections.joins.length > 0) {
+                const joinItems = sections.joins.map(j => {
+                    const onSplit = splitByKeywordTopLevel(j.content, /^ON\b/i);
+                    const targetTable = onSplit[0].text.trim();
+                    const onCond = onSplit.length > 1 ? onSplit.slice(1).map(x => x.text).join(' ON ') : '';
+
+                    let joinExplain = '';
+                    if (j.joinType.includes('LEFT')) {
+                        joinExplain = `<b>${j.joinType}</b> (Collegamento Esterno Sinistro: mantiene <i>tutte</i> le righe della tabella principale anche se non ci sono corrispondenze)`;
+                    } else if (j.joinType.includes('RIGHT')) {
+                        joinExplain = `<b>${j.joinType}</b> (Collegamento Esterno Destro)`;
+                    } else if (j.joinType.includes('FULL')) {
+                        joinExplain = `<b>${j.joinType}</b> (Unione Completa di entrambe le tabelle)`;
+                    } else {
+                        joinExplain = `<b>${j.joinType}</b> (Collegamento Interno: mantiene solo le righe che trovano corrispondenza esatta)`;
+                    }
+
+                    return `
+                        <li class="clause-item">
+                            <div>Collega la tabella/vista ${tablePill(targetTable)} tramite ${joinExplain}.</div>
+                            ${onCond ? `<div class="sub-details"><b>Condizione di unione (<code>ON</code>):</b> ${explainWhereBlock(onCond)}</div>` : ''}
+                        </li>
+                    `;
+                }).join('');
+
+                html += `
+                    <div class="clause-section" style="border-left-color: var(--cyan);">
+                        <div class="clause-title" style="color: var(--cyan);">
+                            <span class="material-symbols-outlined">link</span>
+                            2. Relazioni e Join (${sections.joins.length})
+                        </div>
+                        <ul class="clause-list">${joinItems}</ul>
+                    </div>
+                `;
+            }
+
+            // 3. FILTRI SULLE RIGHE (WHERE)
+            if (sections.where) {
+                html += `
+                    <div class="clause-section" style="border-left-color: var(--orange);">
+                        <div class="clause-title" style="color: var(--orange);">
+                            <span class="material-symbols-outlined">filter_alt</span>
+                            3. Condizioni di Filtro (WHERE)
+                        </div>
+                        <div class="clause-item">
+                            ${explainWhereBlock(sections.where)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 4. RAGGRUPPAMENTO (GROUP BY & HAVING)
+            if (sections.groupBy) {
+                const gbCols = splitTopLevel(sections.groupBy, ',');
+                html += `
+                    <div class="clause-section" style="border-left-color: #ffd54f;">
+                        <div class="clause-title" style="color: #ffd54f;">
+                            <span class="material-symbols-outlined">workspaces</span>
+                            4. Raggruppamento Dati (GROUP BY)
+                        </div>
+                        <div class="clause-item">
+                            Raggruppa i record combinando le righe che condividono gli stessi valori per: ${gbCols.map(c => codePill(c)).join(', ')}.
+                            ${sections.having ? `<div class="sub-details"><b>Filtro post-raggruppamento (<code>HAVING</code>):</b> ${explainWhereBlock(sections.having)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 5. COLONNE ESTRATTE E CALCOLI (SELECT)
+            if (sections.select) {
+                const cols = splitTopLevel(sections.select, ',');
+                const colItems = cols.map((col, idx) => {
+                    const info = analyzeColumnExpression(col);
+                    return `
+                        <li class="clause-item">
+                            <div class="col-header">
+                                <span style="color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size:0.75rem;">#${idx + 1}</span>
+                                ${info.alias ? `<span>Campo generato: ${aliasPill(info.alias)} &larr;</span>` : ''}
+                                <span>${info.mainSummary}</span>
+                            </div>
+                            ${info.details.length > 0 ? `<div class="sub-details">${info.details.map(d => `<div>&bull; ${d}</div>`).join('')}</div>` : ''}
+                        </li>
+                    `;
+                }).join('');
+
+                html += `
+                    <div class="clause-section" style="border-left-color: var(--accent);">
+                        <div class="clause-title" style="color: var(--accent);">
+                            <span class="material-symbols-outlined">view_column</span>
+                            5. Colonne Estratte e Formule (${cols.length} campi)
+                        </div>
+                        <ul class="clause-list">${colItems}</ul>
+                    </div>
+                `;
+            }
+
+            // 6. ORDINAMENTO E PAGINAZIONE (ORDER BY, LIMIT, OFFSET)
+            if (sections.orderBy || sections.limit || sections.offset) {
+                const ordParts = [];
+                if (sections.orderBy) {
+                    const obCols = splitTopLevel(sections.orderBy, ',').map(c => {
+                        const isDesc = /\bDESC\b/i.test(c);
+                        const cleanCol = c.replace(/\b(ASC|DESC)\b/gi, '').trim();
+                        return `${codePill(cleanCol)} (${isDesc ? '<b>Decrescente &darr;</b> dal più grande al più piccolo' : '<b>Crescente &uarr;</b> dal più piccolo al più grande'})`;
+                    });
+                    ordParts.push(`<div><b>Ordinamento (<code>ORDER BY</code>):</b> Ordina i risultati finali per ${obCols.join(', poi per ')}.</div>`);
+                }
+                if (sections.limit) {
+                    ordParts.push(`<div><b>Limite Righe (<code>LIMIT</code>):</b> Restituisce al massimo le prime ${codePill(sections.limit)} righe.</div>`);
+                }
+                if (sections.offset) {
+                    ordParts.push(`<div><b>Scarto Paginazione (<code>OFFSET</code>):</b> Salta le prime ${codePill(sections.offset)} righe prima di iniziare a restituire i risultati.</div>`);
+                }
+
+                html += `
+                    <div class="clause-section" style="border-left-color: var(--green);">
+                        <div class="clause-title" style="color: var(--green);">
+                            <span class="material-symbols-outlined">sort</span>
+                            6. Ordinamento e Limiti
+                        </div>
+                        <div class="clause-item" style="display:flex; flex-direction:column; gap:6px;">
+                            ${ordParts.join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        // Gestisce SELECT che possono contenere UNION / UNION ALL (es. CTE ricorsive)
+        function explainQueryWithUnions(sql, isRecursive = false) {
+            const branches = splitByKeywordTopLevel(sql, /^UNION(?:\s+ALL|\s+DISTINCT)?\b/i);
+            if (branches.length === 1) {
+                return parseSingleSelectBlock(branches[0].text);
+            }
+
+            return branches.map((b, idx) => {
+                let branchTitle = `Blocco Query #${idx + 1}`;
+                if (isRecursive && idx === 0) branchTitle = `Passo 1: Caso Base (Inizializzazione della Ricorsione / Anchor Member)`;
+                else if (isRecursive && idx > 0) branchTitle = `Passo ${idx + 1}: Iterazione Ricorsiva (Espansione Gerarchica / Recursive Member)`;
+
+                const unionBadge = b.separator
+                    ? `<div class="union-divider"><span class="material-symbols-outlined">merge</span> ${b.separator.toUpperCase()} &mdash; Unisce i risultati del blocco sopra con il blocco seguente${b.separator.toUpperCase().includes('ALL') ? ' (mantenendo tutti i record senza rimuovere duplicati)' : ''}:</div>`
+                    : '';
+
+                return `
+                    <div style="background: rgba(255,255,255,0.015); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display:flex; flex-direction:column; gap:10px;">
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--orange); text-transform: uppercase;">${branchTitle}</div>
+                        ${parseSingleSelectBlock(b.text)}
+                    </div>
+                    ${unionBadge}
+                `;
+            }).join('');
+        }
+
+        // ============================================================================
+        // PARSER DI STATEMENT DML / DDL / TRANSAZIONI E CTE (WITH)
+        // ============================================================================
+
+        function explainStatement(stmt) {
+            stmt = stmt.trim();
+            if (!stmt) return '';
+
+            // 1. Controllo Transazioni (BEGIN, COMMIT, ROLLBACK, SAVEPOINT, SET TRANSACTION)
+            if (/^(BEGIN|START\s+TRANSACTION)\b/i.test(stmt)) {
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--red);">play_circle</span>
+                                Avvio Transazione Database
+                            </div>
+                            <span class="step-badge badge-tx">TRANSAZIONE</span>
+                        </div>
+                        <div class="step-body">
+                            Apre un blocco transazionale atomico (${codePill(stmt)}). Tutte le modifiche successive (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>) rimarranno temporanee e isolate finché non verrà eseguito un <code>COMMIT</code> esplicito, oppure verranno annullate in blocco in caso di <code>ROLLBACK</code>.
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (/^COMMIT\b/i.test(stmt)) {
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--green);">check_circle</span>
+                                Conferma Definitiva (COMMIT)
+                            </div>
+                            <span class="step-badge badge-main">COMMIT</span>
+                        </div>
+                        <div class="step-body">
+                            Salva e rende permanenti nel database tutte le operazioni effettuate all'interno della transazione corrente.
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (/^ROLLBACK\s+TO\s+SAVEPOINT\s+([^\s;]+)/i.test(stmt)) {
+                const m = stmt.match(/^ROLLBACK\s+TO\s+SAVEPOINT\s+([^\s;]+)/i);
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--orange);">history</span>
+                                Ripristino Parziale a Savepoint
+                            </div>
+                            <span class="step-badge badge-recursive">ROLLBACK TO</span>
+                        </div>
+                        <div class="step-body">
+                            Annulla tutte le modifiche eseguite dopo il punto di salvataggio ${aliasPill(m[1])}, mantenendo però attiva la transazione.
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (/^ROLLBACK\b/i.test(stmt)) {
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--red);">cancel</span>
+                                Annullamento Transazione (ROLLBACK)
+                            </div>
+                            <span class="step-badge badge-tx">ROLLBACK</span>
+                        </div>
+                        <div class="step-body">
+                            Annulla completamente la transazione corrente e riporta i dati esattamente allo stato in cui si trovavano prima del comando <code>BEGIN</code>.
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (/^SAVEPOINT\s+([^\s;]+)/i.test(stmt)) {
+                const m = stmt.match(/^SAVEPOINT\s+([^\s;]+)/i);
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--blue);">bookmark_added</span>
+                                Punto di Ripristino (SAVEPOINT)
+                            </div>
+                            <span class="step-badge badge-cte">SAVEPOINT</span>
+                        </div>
+                        <div class="step-body">
+                            Crea un checkpoint intermedio chiamato ${aliasPill(m[1])} all'interno della transazione, a cui poter tornare in caso di errori parziali.
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. Controllo INSERT / UPDATE / DELETE
+            if (/^INSERT\s+INTO\s+([^\s(]+)\s*(?:\(([^)]+)\))?\s*VALUES\s*([\s\S]+)$/i.test(stmt)) {
+                const m = stmt.match(/^INSERT\s+INTO\s+([^\s(]+)\s*(?:\(([^)]+)\))?\s*VALUES\s*([\s\S]+)$/i);
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--green);">add_box</span>
+                                Inserimento Record (INSERT INTO)
+                            </div>
+                            <span class="step-badge badge-main">SCRITTURA</span>
+                        </div>
+                        <div class="step-body">
+                            <div>Inserisce nuove righe nella tabella ${tablePill(m[1])}.</div>
+                            ${m[2] ? `<div><b>Colonne valorizzate:</b> ${splitTopLevel(m[2], ',').map(c => codePill(c)).join(', ')}</div>` : ''}
+                            <div><b>Valori inseriti:</b> ${codePill(m[3])}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (/^UPDATE\s+([^\s]+)\s+SET\s+([\s\S]+?)(?:\s+WHERE\s+([\s\S]+))?$/i.test(stmt)) {
+                const m = stmt.match(/^UPDATE\s+([^\s]+)\s+SET\s+([\s\S]+?)(?:\s+WHERE\s+([\s\S]+))?$/i);
+                const assignments = splitTopLevel(m[2], ',').map(a => `<li>Imposta ${codePill(a)}</li>`).join('');
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--orange);">edit_square</span>
+                                Aggiornamento Record (UPDATE)
+                            </div>
+                            <span class="step-badge badge-recursive">MODIFICA</span>
+                        </div>
+                        <div class="step-body">
+                            <div>Aggiorna i record della tabella ${tablePill(m[1])}:</div>
+                            <ul style="margin-left:18px; display:flex; flex-direction:column; gap:4px;">${assignments}</ul>
+                            ${m[3] ? `<div class="clause-section" style="border-left-color: var(--orange);"><div class="clause-title" style="color: var(--orange);"><span class="material-symbols-outlined">filter_alt</span> Solo per le righe dove (WHERE):</div><div class="clause-item">${explainWhereBlock(m[3])}</div></div>` : '<div style="color:var(--red);"><b>Attenzione:</b> Nessuna clausola WHERE specificata (aggiorna tutte le righe della tabella!).</div>'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (/^DELETE\s+FROM\s+([^\s]+)(?:\s+WHERE\s+([\s\S]+))?$/i.test(stmt)) {
+                const m = stmt.match(/^DELETE\s+FROM\s+([^\s]+)(?:\s+WHERE\s+([\s\S]+))?$/i);
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--red);">delete_forever</span>
+                                Eliminazione Record (DELETE)
+                            </div>
+                            <span class="step-badge badge-tx">ELIMINAZIONE</span>
+                        </div>
+                        <div class="step-body">
+                            <div>Rimuove righe dalla tabella ${tablePill(m[1])}.</div>
+                            ${m[2] ? `<div class="clause-section" style="border-left-color: var(--orange);"><div class="clause-title" style="color: var(--orange);"><span class="material-symbols-outlined">filter_alt</span> Condizione di cancellazione (WHERE):</div><div class="clause-item">${explainWhereBlock(m[2])}</div></div>` : '<div style="color:var(--red);"><b>Attenzione:</b> Nessuna clausola WHERE specificata (svuota l\'intera tabella!).</div>'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 3. Controllo Query con CTE (WITH [RECURSIVE] ... SELECT ...)
+            if (/^WITH\b/i.test(stmt)) {
+                const isRecursive = /^WITH\s+RECURSIVE\b/i.test(stmt);
+                let rest = stmt.replace(/^WITH(?:\s+RECURSIVE)?\s+/i, '');
+
+                const ctes = [];
+                // Estrae tutte le CTE "nome_cte AS ( ... )" fino alla SELECT finale
+                while (rest.length > 0) {
+                    const nameMatch = rest.match(/^([a-zA-Z0-9_]+)\s+AS\s*\(/i);
+                    if (!nameMatch) break;
+
+                    const cteName = nameMatch[1];
+                    const openParenIdx = rest.indexOf('(', nameMatch[0].length - 1);
+                    let depth = 0;
+                    let inQuote = false;
+                    let closeParenIdx = -1;
+
+                    for (let i = openParenIdx; i < rest.length; i++) {
+                        const ch = rest[i];
+                        if (ch === "'" && rest[i - 1] !== '\\') inQuote = !inQuote;
+                        if (!inQuote) {
+                            if (ch === '(') depth++;
+                            else if (ch === ')') {
+                                depth--;
+                                if (depth === 0) {
+                                    closeParenIdx = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (closeParenIdx === -1) break;
+
+                    const cteBody = rest.slice(openParenIdx + 1, closeParenIdx).trim();
+                    ctes.push({ name: cteName, body: cteBody });
+
+                    rest = rest.slice(closeParenIdx + 1).trim();
+                    if (rest.startsWith(',')) {
+                        rest = rest.slice(1).trim();
+                    } else {
+                        break;
+                    }
+                }
+
+                let cardsHtml = '';
+
+                // Genera una Card dettagliata per OGNI singola CTE
+                ctes.forEach((cte, index) => {
+                    const usesSelfRecursion = new RegExp(`\\b${cte.name}\\b`, 'i').test(cte.body) && /\bUNION\b/i.test(cte.body);
+                    cardsHtml += `
+                        <div class="step-card">
+                            <div class="step-card-header">
+                                <div class="step-title-wrap">
+                                    <span class="material-symbols-outlined" style="color: ${usesSelfRecursion ? 'var(--orange)' : 'var(--blue)'};">
+                                        ${usesSelfRecursion ? 'account_tree' : 'layers'}
+                                    </span>
+                                    Tabella Temporanea (CTE #${index + 1}): ${aliasPill(cte.name)}
+                                </div>
+                                <span class="step-badge ${usesSelfRecursion ? 'badge-recursive' : 'badge-cte'}">
+                                    ${usesSelfRecursion ? 'CTE RICORSIVA' : `STEP ${index + 1} DI ${ctes.length + 1}`}
+                                </span>
+                            </div>
+                            <div class="step-body">
+                                <div style="font-size: 0.82rem; color: var(--text-secondary);">
+                                    Definisce la vista intermedia ${aliasPill(cte.name)} utilizzabile dai blocchi successivi della query:
+                                </div>
+                                ${explainQueryWithUnions(cte.body, usesSelfRecursion)}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Genera la Card per la Query Finale Principale
+                if (rest) {
+                    cardsHtml += `
+                        <div class="step-card" style="border-color: rgba(129, 201, 149, 0.3);">
+                            <div class="step-card-header" style="background: rgba(129, 201, 149, 0.08);">
+                                <div class="step-title-wrap">
+                                    <span class="material-symbols-outlined" style="color: var(--green);">output</span>
+                                    Query Finale Principale (Output Definitivo)
+                                </div>
+                                <span class="step-badge badge-main">STEP FINALE (${ctes.length + 1} DI ${ctes.length + 1})</span>
+                            </div>
+                            <div class="step-body">
+                                <div style="font-size: 0.82rem; color: var(--text-secondary);">
+                                    Interroga le viste temporanee appena calcolate per produrre il set di risultati finale:
+                                </div>
+                                ${explainQueryWithUnions(rest, false)}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return cardsHtml;
+            }
+
+            // 4. Query SELECT Standard (senza CTE)
+            if (/^SELECT\b/i.test(stmt)) {
+                return `
+                    <div class="step-card">
+                        <div class="step-card-header">
+                            <div class="step-title-wrap">
+                                <span class="material-symbols-outlined" style="color: var(--accent);">database</span>
+                                Analisi Query SELECT
+                            </div>
+                            <span class="step-badge badge-main">QUERY PRINCIPALE</span>
+                        </div>
+                        <div class="step-body">
+                            ${explainQueryWithUnions(stmt, false)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="step-card">
+                    <div class="step-card-header">
+                        <div class="step-title-wrap">
+                            <span class="material-symbols-outlined" style="color: var(--text-secondary);">terminal</span>
+                            Comando SQL Generico
+                        </div>
+                    </div>
+                    <div class="step-body">
+                        Esegue l'istruzione: ${codePill(stmt)}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Funzione Master che divide per ';' (più statement/transazioni) e avvia l'analisi
+        function explainFullSQL(rawSql) {
+            const clean = stripComments(rawSql);
+            if (!clean) {
+                return `
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined" style="font-size: 42px; color: #333;">manage_search</span>
+                        <p>Incolla una query SQL a sinistra oppure clicca su <b>"Carica Query Complessa"</b> per vedere l'analisi anatomica di ogni singola istruzione.</p>
+                    </div>
+                `;
+            }
+
+            const statements = splitTopLevel(clean, ';').filter(s => s.length > 0);
+            return statements.map(stmt => explainStatement(stmt)).join('');
+        }
+
+        // ============================================================================
+        // EVENT LISTENERS E QUERY DI ESEMPIO
+        // ============================================================================
+
+        function updateCounterAndExplain() {
+            const lines = input.value ? input.value.split('\n').length : 0;
+            lineCounter.textContent = `${lines} ${lines === 1 ? 'riga' : 'righe'}`;
+            output.innerHTML = explainFullSQL(input.value);
+        }
+
+        input.addEventListener('input', updateCounterAndExplain);
+
+        function clearAll() {
+            input.value = '';
+            updateCounterAndExplain();
+            input.focus();
+        }
+
+        function copyExplanation() {
+            const textToCopy = output.innerText.trim();
+            if (!textToCopy || textToCopy.includes('Incolla una query SQL')) return;
+
+            navigator.clipboard.writeText(textToCopy);
+            const btn = document.getElementById('copy-btn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 14px; color: var(--green);">check</span> Copiato!`;
+            setTimeout(() => btn.innerHTML = orig, 1500);
+        }
+
+        function loadTransactionSample() {
+            input.value = `BEGIN;
+
+INSERT INTO payments (order_id, amount, status)
+VALUES (1042, 299.90, 'successful');
+
+SAVEPOINT after_payment;
+
+UPDATE orders
+SET status = 'completed', updated_at = CURRENT_TIMESTAMP
+WHERE id = 1042 AND status = 'pending';
+
+DELETE FROM cart_items
+WHERE customer_id = 88 AND created_at < CURRENT_DATE - INTERVAL '30 days';
+
+ROLLBACK TO SAVEPOINT after_payment;
+
+COMMIT;`;
+            updateCounterAndExplain();
+        }
+
+        function loadComplexSample() {
+            input.value = `WITH RECURSIVE
+date_series AS (
+    SELECT
+        DATE_TRUNC('month', MIN(o.created_at)) AS month_start
+    FROM orders o
+
+    UNION ALL
+
+    SELECT month_start + INTERVAL '1 month'
+    FROM date_series
+    WHERE month_start + INTERVAL '1 month'
+          <= DATE_TRUNC('month', CURRENT_DATE)
+),
+
+customer_hierarchy AS (
+    SELECT
+        c.id AS customer_id,
+        c.id AS root_customer_id,
+        c.referrer_id,
+        0 AS referral_depth,
+        ARRAY[c.id] AS referral_path
+    FROM customers c
+    WHERE c.referrer_id IS NULL
+
+    UNION ALL
+
+    SELECT
+        child.id,
+        parent.root_customer_id,
+        child.referrer_id,
+        parent.referral_depth + 1,
+        parent.referral_path || child.id
+    FROM customers child
+    JOIN customer_hierarchy parent
+        ON child.referrer_id = parent.customer_id
+    WHERE NOT child.id = ANY(parent.referral_path)
+),
+
+order_details AS (
+    SELECT
+        o.id AS order_id,
+        o.customer_id,
+        o.created_at,
+        o.status,
+        o.currency,
+        COALESCE(
+            SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct / 100.0)),
+            0
+        ) AS subtotal,
+        COUNT(DISTINCT oi.product_id) AS distinct_products,
+        SUM(oi.quantity) AS total_items,
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN r.status = 'approved'
+                    THEN r.quantity * oi.unit_price
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS refunded_amount
+    FROM orders o
+    LEFT JOIN order_items oi
+        ON oi.order_id = o.id
+    LEFT JOIN returns r
+        ON r.order_item_id = oi.id
+    GROUP BY
+        o.id,
+        o.customer_id,
+        o.created_at,
+        o.status,
+        o.currency
+),
+
+customer_metrics AS (
+    SELECT
+        c.id AS customer_id,
+        c.email,
+        c.country,
+        c.created_at AS registration_date,
+        COUNT(od.order_id) FILTER (
+            WHERE od.status = 'completed'
+        ) AS completed_orders,
+        COALESCE(
+            SUM(od.subtotal - od.refunded_amount) FILTER (
+                WHERE od.status = 'completed'
+            ),
+            0
+        ) AS lifetime_value,
+        AVG(od.subtotal) FILTER (
+            WHERE od.status = 'completed'
+        ) AS average_order_value,
+        MAX(od.created_at) FILTER (
+            WHERE od.status = 'completed'
+        ) AS last_order_at,
+        PERCENT_RANK() OVER (
+            PARTITION BY c.country
+            ORDER BY COUNT(od.order_id) FILTER (
+                WHERE od.status = 'completed'
+            )
+        ) AS country_order_percentile
+    FROM customers c
+    LEFT JOIN order_details od
+        ON od.customer_id = c.id
+    GROUP BY
+        c.id,
+        c.email,
+        c.country,
+        c.created_at
+),
+
+monthly_revenue AS (
+    SELECT
+        DATE_TRUNC('month', od.created_at) AS month,
+        od.currency,
+        SUM(od.subtotal - od.refunded_amount) AS net_revenue,
+        COUNT(DISTINCT od.order_id) AS order_count,
+        COUNT(DISTINCT od.customer_id) AS unique_customers,
+        AVG(od.subtotal) AS average_order_value
+    FROM order_details od
+    WHERE od.status = 'completed'
+    GROUP BY
+        DATE_TRUNC('month', od.created_at),
+        od.currency
+),
+
+revenue_growth AS (
+    SELECT
+        mr.*,
+        LAG(mr.net_revenue) OVER (
+            PARTITION BY mr.currency
+            ORDER BY mr.month
+        ) AS previous_month_revenue,
+        mr.net_revenue - LAG(mr.net_revenue) OVER (
+            PARTITION BY mr.currency
+            ORDER BY mr.month
+        ) AS absolute_growth,
+        ROUND(
+            100.0 * (
+                mr.net_revenue
+                - LAG(mr.net_revenue) OVER (
+                    PARTITION BY mr.currency
+                    ORDER BY mr.month
+                )
+            ) / NULLIF(
+                LAG(mr.net_revenue) OVER (
+                    PARTITION BY mr.currency
+                    ORDER BY mr.month
+                ),
+                0
+            ),
+            2
+        ) AS percentage_growth
+    FROM monthly_revenue mr
+),
+
+product_performance AS (
+    SELECT
+        p.id AS product_id,
+        p.name AS product_name,
+        p.category_id,
+        COALESCE(SUM(oi.quantity), 0) AS units_sold,
+        COALESCE(
+            SUM(oi.quantity * oi.unit_price),
+            0
+        ) AS gross_sales,
+        COUNT(DISTINCT oi.order_id) AS order_frequency,
+        AVG(rv.rating) AS average_rating,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (
+            ORDER BY oi.unit_price
+        ) AS price_95th_percentile
+    FROM products p
+    LEFT JOIN order_items oi
+        ON oi.product_id = p.id
+    LEFT JOIN reviews rv
+        ON rv.product_id = p.id
+    GROUP BY
+        p.id,
+        p.name,
+        p.category_id
+),
+
+category_rankings AS (
+    SELECT
+        pp.*,
+        DENSE_RANK() OVER (
+            PARTITION BY pp.category_id
+            ORDER BY pp.gross_sales DESC
+        ) AS category_sales_rank,
+        NTILE(10) OVER (
+            ORDER BY pp.units_sold DESC
+        ) AS sales_decile
+    FROM product_performance pp
+),
+
+payment_reconciliation AS (
+    SELECT
+        p.order_id,
+        COUNT(*) AS payment_attempts,
+        SUM(
+            CASE
+                WHEN p.status = 'successful'
+                THEN p.amount
+                ELSE 0
+            END
+        ) AS successful_payment_amount,
+        BOOL_AND(
+            p.status IN ('successful', 'refunded', 'cancelled')
+        ) AS all_attempts_finalized
+    FROM payments p
+    GROUP BY p.order_id
+),
+
+shipment_metrics AS (
+    SELECT
+        s.order_id,
+        COUNT(*) AS shipment_count,
+        AVG(
+            EXTRACT(EPOCH FROM (s.delivered_at - s.shipped_at)) / 86400.0
+        ) FILTER (
+            WHERE s.delivered_at IS NOT NULL
+        ) AS average_delivery_days,
+        BOOL_OR(
+            s.delivered_at > s.estimated_delivery_at
+        ) AS has_late_delivery
+    FROM shipments s
+    GROUP BY s.order_id
+),
+
+final_customer_analysis AS (
+    SELECT
+        cm.*,
+        ch.root_customer_id,
+        ch.referral_depth,
+        COALESCE(
+            JSONB_AGG(
+                DISTINCT JSONB_BUILD_OBJECT(
+                    'order_id', od.order_id,
+                    'date', od.created_at,
+                    'net_amount', od.subtotal - od.refunded_amount,
+                    'items', od.total_items,
+                    'products', od.distinct_products,
+                    'payment_attempts', pr.payment_attempts,
+                    'delivery_days', sm.average_delivery_days,
+                    'late_delivery', sm.has_late_delivery
+                )
+            ) FILTER (
+                WHERE od.order_id IS NOT NULL
+            ),
+            '[]'::JSONB
+        ) AS order_history,
+        COALESCE(
+            SUM(od.subtotal - od.refunded_amount) FILTER (
+                WHERE od.status = 'completed'
+                  AND od.created_at >= CURRENT_DATE - INTERVAL '90 days'
+            ),
+            0
+        ) AS revenue_last_90_days,
+        COUNT(od.order_id) FILTER (
+            WHERE od.status = 'cancelled'
+        ) AS cancelled_orders,
+        AVG(sm.average_delivery_days) AS avg_delivery_days,
+        BOOL_OR(sm.has_late_delivery) AS any_late_delivery
+    FROM customer_metrics cm
+    LEFT JOIN customer_hierarchy ch
+        ON ch.customer_id = cm.customer_id
+    LEFT JOIN order_details od
+        ON od.customer_id = cm.customer_id
+    LEFT JOIN payment_reconciliation pr
+        ON pr.order_id = od.order_id
+    LEFT JOIN shipment_metrics sm
+        ON sm.order_id = od.order_id
+    GROUP BY
+        cm.customer_id,
+        cm.email,
+        cm.country,
+        cm.registration_date,
+        cm.completed_orders,
+        cm.lifetime_value,
+        cm.average_order_value,
+        cm.last_order_at,
+        cm.country_order_percentile,
+        ch.root_customer_id,
+        ch.referral_depth
+)
+
+SELECT
+    fca.customer_id,
+    fca.email,
+    fca.country,
+    fca.registration_date,
+    fca.completed_orders,
+    ROUND(fca.lifetime_value::NUMERIC, 2) AS lifetime_value,
+    ROUND(fca.average_order_value::NUMERIC, 2) AS average_order_value,
+    ROUND(fca.revenue_last_90_days::NUMERIC, 2) AS revenue_last_90_days,
+    fca.cancelled_orders,
+    fca.last_order_at,
+    fca.root_customer_id,
+    fca.referral_depth,
+    ROUND(
+        fca.country_order_percentile::NUMERIC,
+        4
+    ) AS country_order_percentile,
+    ROUND(
+        fca.avg_delivery_days::NUMERIC,
+        2
+    ) AS avg_delivery_days,
+    fca.any_late_delivery,
+    fca.order_history,
+    CASE
+        WHEN fca.lifetime_value >= PERCENTILE_CONT(0.95)
+            WITHIN GROUP (ORDER BY fca.lifetime_value)
+            OVER ()
+            THEN 'VIP'
+        WHEN fca.revenue_last_90_days > 1000
+            THEN 'HIGH_VALUE'
+        WHEN fca.last_order_at < CURRENT_DATE - INTERVAL '180 days'
+            OR fca.last_order_at IS NULL
+            THEN 'INACTIVE'
+        ELSE 'STANDARD'
+    END AS customer_segment,
+    ROUND(
+        100.0 * fca.cancelled_orders
+        / NULLIF(
+            fca.cancelled_orders + fca.completed_orders,
+            0
+        ),
+        2
+    ) AS cancellation_rate_pct
+FROM final_customer_analysis fca
+WHERE
+    fca.completed_orders > 0
+    AND (
+        fca.lifetime_value > 500
+        OR fca.revenue_last_90_days > 100
+    )
+ORDER BY
+    fca.lifetime_value DESC,
+    fca.revenue_last_90_days DESC,
+    fca.customer_id ASC
+LIMIT 500;`;
+            updateCounterAndExplain();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seed Web Worldgen — Procedural Website Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            main: '#0a0a0a',
+                            panel: '#121212',
+                            card: '#181818',
+                            hover: '#242424',
+                            border: '#262626',
+                            text: '#ededed',
+                            muted: '#888888'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
+        .dna-pill {
+            background: linear-gradient(90deg, rgba(16,185,129,0.12), rgba(99,102,241,0.12));
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+    </style>
+</head>
+<body class="bg-brand-main text-brand-text h-screen flex flex-col font-sans overflow-hidden select-none">
+
+    <!-- TOP BAR: Controllo Seed & Worldgen -->
+    <header class="h-16 bg-brand-panel border-b border-brand-border px-4 flex items-center justify-between gap-4 shrink-0 z-20">
+        <!-- Brand & Seed Input -->
+        <div class="flex items-center gap-3 flex-1 max-w-2xl">
+            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <span class="material-symbols-outlined text-[20px]">deployed_code</span>
+            </div>
+            <div class="hidden sm:flex flex-col mr-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-white tracking-tight">Web Worldgen</span>
+                    <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Seed Engine v2</span>
+                </div>
+                <span class="text-[11px] text-brand-muted">Generazione procedurale deterministica</span>
+            </div>
+
+            <!-- Seed Input Box -->
+            <div class="flex items-center flex-1 bg-black border border-brand-border rounded-lg overflow-hidden focus-within:border-emerald-500 transition-colors">
+                <span class="px-3 text-xs font-mono text-brand-muted border-r border-brand-border py-2 bg-brand-card">SEED</span>
+                <input 
+                    type="text" 
+                    id="seed-input" 
+                    value="STRAT-2077"
+                    placeholder="Inserisci un seed (es. MINECRAFT, 42, CYBER-99)..." 
+                    class="w-full bg-transparent px-3 py-1.5 text-sm font-mono text-emerald-400 focus:outline-none"
+                    spellcheck="false"
+                >
+                <button onclick="stepSeed(-1)" title="Seed -1" class="px-2 py-1.5 text-brand-muted hover:text-white hover:bg-brand-hover border-l border-brand-border transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">remove</span>
+                </button>
+                <button onclick="stepSeed(1)" title="Seed +1" class="px-2 py-1.5 text-brand-muted hover:text-white hover:bg-brand-hover border-l border-brand-border transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">add</span>
+                </button>
+            </div>
+
+            <!-- Random Seed Button -->
+            <button onclick="randomizeSeed()" class="px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-lg shadow-emerald-500/10 shrink-0">
+                <span class="material-symbols-outlined text-[17px]">casino</span>
+                <span>Nuovo Mondo</span>
+            </button>
+        </div>
+
+        <!-- Preset Seeds & View Controls -->
+        <div class="flex items-center gap-2">
+            <select id="seed-presets" onchange="if(this.value) { setSeed(this.value); this.value=''; }" class="bg-brand-card border border-brand-border text-xs text-brand-text rounded-lg px-2.5 py-2 outline-none hover:border-neutral-600 cursor-pointer hidden xl:block">
+                <option value="">🌱 Seed Leggendari...</option>
+                <option value="STRAT-2077">STRAT-2077 (Cyberpunk HUD)</option>
+                <option value="BRUTAL-POP-99">BRUTAL-POP-99 (Neo-Brutalist)</option>
+                <option value="SWISS-ZURICH-1957">SWISS-ZURICH-1957 (Editorial Grid)</option>
+                <option value="AETHER-CLOUD-42">AETHER-CLOUD-42 (Glass SaaS)</option>
+                <option value="SOLARPUNK-EDEN">SOLARPUNK-EDEN (Botanical Organic)</option>
+                <option value="OBSIDIAN-VAULT-888">OBSIDIAN-VAULT-888 (Luxury Noir)</option>
+                <option value="MONOPOLI-COAST">MONOPOLI-COAST (Mediterranean Tech)</option>
+            </select>
+
+            <!-- Viewport Switcher -->
+            <div class="hidden md:flex items-center bg-black p-1 rounded-lg border border-brand-border">
+                <button onclick="setViewport('100%')" id="vp-desktop" class="vp-btn px-2 py-1 rounded text-emerald-400 bg-brand-card transition-colors" title="Desktop">
+                    <span class="material-symbols-outlined text-[16px]">desktop_windows</span>
+                </button>
+                <button onclick="setViewport('768px')" id="vp-tablet" class="vp-btn px-2 py-1 rounded text-brand-muted hover:text-white transition-colors" title="Tablet">
+                    <span class="material-symbols-outlined text-[16px]">tablet_mac</span>
+                </button>
+                <button onclick="setViewport('390px')" id="vp-mobile" class="vp-btn px-2 py-1 rounded text-brand-muted hover:text-white transition-colors" title="Mobile">
+                    <span class="material-symbols-outlined text-[16px]">smartphone</span>
+                </button>
+            </div>
+
+            <!-- Mode Tabs (Preview vs Code) -->
+            <div class="flex items-center bg-black p-1 rounded-lg border border-brand-border">
+                <button onclick="switchMainView('preview')" id="tab-preview" class="px-3 py-1 rounded text-xs font-medium bg-brand-card text-white transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[15px]">visibility</span>
+                    Preview
+                </button>
+                <button onclick="switchMainView('code')" id="tab-code" class="px-3 py-1 rounded text-xs font-medium text-brand-muted hover:text-white transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[15px]">code</span>
+                    HTML/CSS
+                </button>
+            </div>
+
+            <!-- Export Actions -->
+            <button onclick="copyGeneratedCode()" id="btn-copy-html" class="px-3 py-2 bg-brand-card hover:bg-brand-hover border border-brand-border rounded-lg text-xs font-medium text-white flex items-center gap-1.5 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                <span class="hidden lg:inline">Copia HTML</span>
+            </button>
+            <button onclick="downloadGeneratedHtml()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">download</span>
+                <span class="hidden lg:inline">Scarica .html</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="flex-1 flex min-h-0 overflow-hidden">
+        
+        <!-- LEFT SIDEBAR: DNA Inspector & Biome Overrides -->
+        <aside class="w-80 bg-brand-panel border-r border-brand-border flex flex-col shrink-0 overflow-y-auto">
+            <!-- Seed Hash & Coordinates -->
+            <div class="p-4 border-b border-brand-border bg-black/40">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-mono uppercase tracking-wider text-brand-muted">Mappa Genetica del Seed</span>
+                    <span id="dna-hash" class="text-[11px] font-mono text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10">0x00000000</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 text-center font-mono text-[11px]">
+                    <div class="bg-brand-card border border-brand-border rounded p-1.5">
+                        <div class="text-[9px] text-brand-muted">X-COORD</div>
+                        <div id="coord-x" class="text-white font-semibold">0</div>
+                    </div>
+                    <div class="bg-brand-card border border-brand-border rounded p-1.5">
+                        <div class="text-[9px] text-brand-muted">Y-BIOME</div>
+                        <div id="coord-y" class="text-white font-semibold">0</div>
+                    </div>
+                    <div class="bg-brand-card border border-brand-border rounded p-1.5">
+                        <div class="text-[9px] text-brand-muted">Z-NOISE</div>
+                        <div id="coord-z" class="text-white font-semibold">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Decoded Genes -->
+            <div class="p-4 space-y-4 flex-1">
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="text-brand-muted font-medium">1. Bioma Estetico</span>
+                        <span id="gene-biome-badge" class="text-[10px] font-mono text-indigo-400">AUTO (Dal Seed)</span>
+                    </div>
+                    <select id="override-biome" onchange="generateWorld()" class="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500">
+                        <option value="auto">🎲 Determinato dal Seed</option>
+                        <option value="cyberpunk">⚡ Cyberpunk Terminal HUD</option>
+                        <option value="brutalist">🟨 Neo-Brutalist Pop Studio</option>
+                        <option value="glass">🔮 Ethereal Glassmorphism SaaS</option>
+                        <option value="swiss">📐 Swiss Editorial Grid</option>
+                        <option value="solarpunk">🌿 Solarpunk Botanical</option>
+                        <option value="luxury">👑 Obsidian Luxury Noir</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="text-brand-muted font-medium">2. Settore / Contenuto</span>
+                    </div>
+                    <select id="override-sector" onchange="generateWorld()" class="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500">
+                        <option value="auto">🎲 Determinato dal Seed</option>
+                        <option value="ai">🧠 AI & Neural Infrastructure</option>
+                        <option value="studio">🎨 Design & Creative Lab</option>
+                        <option value="fintech">💎 Quantum DeFi & FinTech</option>
+                        <option value="gamedev">🕹️ Indie Game & Engine Studio</option>
+                        <option value="biotech">🧬 Eco-Architecture & BioTech</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="text-brand-muted font-medium">3. Struttura Hero</span>
+                    </div>
+                    <select id="override-hero" onchange="generateWorld()" class="w-full bg-brand-card border border-brand-border rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-emerald-500">
+                        <option value="auto">🎲 Determinato dal Seed</option>
+                        <option value="split">Split-Screen + Arte SVG Procedurale</option>
+                        <option value="center">Mega-Tipografia Centrale + HUD</option>
+                        <option value="bento">Asymmetric Bento Showcase</option>
+                    </select>
+                </div>
+
+                <!-- Procedural Color Palette Preview -->
+                <div class="pt-2 border-t border-brand-border">
+                    <div class="text-xs text-brand-muted font-medium mb-2 flex items-center justify-between">
+                        <span>Palette Cromatica Generata</span>
+                        <span id="dna-mode" class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-brand-card border border-brand-border">DARK</span>
+                    </div>
+                    <div id="palette-swatches" class="grid grid-cols-5 gap-1.5 h-10">
+                        <!-- Swatches injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Decoded DNA Table -->
+                <div class="pt-2 border-t border-brand-border space-y-2">
+                    <div class="text-xs text-brand-muted font-medium">Genoma Decodificato</div>
+                    <div id="dna-details" class="space-y-1.5 text-xs font-mono">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="p-3 border-t border-brand-border bg-black/50 text-[11px] text-brand-muted flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-400 text-[16px]">verified</span>
+                <span>Stesso Seed = Stesso identico sito web</span>
+            </div>
+        </aside>
+
+        <!-- RIGHT VIEWPORT: Live Rendered World or Source Code -->
+        <main class="flex-1 flex flex-col bg-[#050505] relative overflow-hidden">
+            
+            <!-- Preview Container -->
+            <div id="view-preview" class="flex-1 flex items-center justify-center p-2 md:p-4 overflow-hidden">
+                <div id="iframe-wrapper" class="w-full h-full transition-all duration-300 rounded-xl overflow-hidden border border-brand-border shadow-2xl bg-black flex flex-col">
+                    <!-- Fake Browser Bar -->
+                    <div class="h-8 bg-[#161616] border-b border-brand-border px-3 flex items-center justify-between shrink-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500/70"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/70"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/70"></span>
+                        </div>
+                        <div id="browser-url" class="px-3 py-0.5 rounded bg-black/60 border border-brand-border text-[11px] font-mono text-brand-muted truncate max-w-md">
+                            https://worldgen.strat/seed/STRAT-2077
+                        </div>
+                        <div class="text-[10px] font-mono text-brand-muted" id="browser-biome-tag">BIOME</div>
+                    </div>
+                    <iframe id="world-iframe" class="w-full flex-1 border-none bg-white" title="Generated Website Preview"></iframe>
+                </div>
+            </div>
+
+            <!-- Source Code View -->
+            <div id="view-code" class="hidden flex-1 flex flex-col overflow-hidden bg-[#0b0b0b]">
+                <div class="px-6 py-3 bg-brand-panel border-b border-brand-border flex items-center justify-between">
+                    <span class="text-xs font-mono text-brand-muted">Codice sorgente HTML5 + CSS3 + SVG autonomo (100% standalone)</span>
+                    <span id="code-size-badge" class="text-xs font-mono text-emerald-400">0 KB</span>
+                </div>
+                <textarea id="source-code-area" readonly class="flex-1 w-full p-6 bg-transparent text-emerald-300 font-mono text-xs leading-relaxed resize-none outline-none overflow-auto whitespace-pre" spellcheck="false"></textarea>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // ============================================================================
+        // 1. PRNG DETERMINISTICO (stile Minecraft World Seed: cyrb128 + mulberry32)
+        // ============================================================================
+        function cyrb128(str) {
+            let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+            for (let i = 0, k; i < str.length; i++) {
+                k = str.charCodeAt(i);
+                h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+                h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+                h3 = h4 ^ Math.imul(h3 ^ k, 951274293);
+                h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+            }
+            h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+            h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+            h3 = Math.imul(h1 ^ (h3 >>> 17), 951274293);
+            h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+            return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+        }
+
+        function mulberry32(a) {
+            return function() {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+
+        // Convertitore HSL -> HEX per la palette procedurale
+        function hslToHex(h, s, l) {
+            h = ((h % 360) + 360) % 360;
+            s = Math.max(0, Math.min(100, s)) / 100;
+            l = Math.max(0, Math.min(100, l)) / 100;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => {
+                const k = (n + h / 30) % 12;
+                const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        // ============================================================================
+        // 2. DATABASE DI BIOMI, LESSICI E ARCHITETTURE
+        // ============================================================================
+        const BIOMES = {
+            cyberpunk: {
+                id: 'cyberpunk',
+                name: 'Cyberpunk Terminal',
+                fontImport: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Orbitron:wght@600;800;900&display=swap',
+                fontDisplay: "'Orbitron', sans-serif",
+                fontBody: "'JetBrains Mono', monospace",
+                isDark: true,
+                radius: '2px',
+                borderWidth: '1px',
+                shadowStyle: 'glow',
+                pattern: 'grid'
+            },
+            brutalist: {
+                id: 'brutalist',
+                name: 'Neo-Brutalist Pop',
+                fontImport: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800&display=swap',
+                fontDisplay: "'Syne', sans-serif",
+                fontBody: "'Space Grotesk', sans-serif",
+                isDark: false,
+                radius: '12px',
+                borderWidth: '3px',
+                shadowStyle: 'hard',
+                pattern: 'dots'
+            },
+            glass: {
+                id: 'glass',
+                name: 'Ethereal Glass SaaS',
+                fontImport: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
+                fontDisplay: "'Plus Jakarta Sans', sans-serif",
+                fontBody: "'Plus Jakarta Sans', sans-serif",
+                isDark: true,
+                radius: '20px',
+                borderWidth: '1px',
+                shadowStyle: 'soft',
+                pattern: 'aurora'
+            },
+            swiss: {
+                id: 'swiss',
+                name: 'Swiss Editorial Grid',
+                fontImport: 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap',
+                fontDisplay: "'Instrument Serif', serif",
+                fontBody: "'Inter', sans-serif",
+                isDark: false,
+                radius: '0px',
+                borderWidth: '1px',
+                shadowStyle: 'none',
+                pattern: 'lines'
+            },
+            solarpunk: {
+                id: 'solarpunk',
+                name: 'Solarpunk Botanical',
+                fontImport: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap',
+                fontDisplay: "'Fraunces', serif",
+                fontBody: "'DM Sans', sans-serif",
+                isDark: false,
+                radius: '28px',
+                borderWidth: '1.5px',
+                shadowStyle: 'warm',
+                pattern: 'waves'
+            },
+            luxury: {
+                id: 'luxury',
+                name: 'Obsidian Luxury Noir',
+                fontImport: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;500;600&display=swap',
+                fontDisplay: "'Cormorant Garamond', serif",
+                fontBody: "'Outfit', sans-serif",
+                isDark: true,
+                radius: '4px',
+                borderWidth: '1px',
+                shadowStyle: 'subtle',
+                pattern: 'minimal'
+            }
+        };
+
+        const SECTORS = {
+            ai: {
+                name: 'AI & Neural Systems',
+                prefixes: ['Neuro', 'Synapse', 'Aether', 'Cortex', 'Vortex', 'Axiom', 'Hyper', 'Kronos'],
+                suffixes: ['AI', 'Labs', 'Core', 'Mind', 'Matrix', 'Mesh', 'Compute', 'OS'],
+                badges: ['MOTORE NEURALE V4.2', 'LATENZA ZERO • EDGE AI', 'ARCHITETTURA QUANTICA', 'CLUSTER AUTONOMO'],
+                headlines: [
+                    'Infrastruttura sintetica per intelligenze distribuite.',
+                    'Addestra, orchestra e scala modelli neurali alla velocità della luce.',
+                    'Il sistema operativo cognitivo per i team del futuro.',
+                    'Calcolo predittivo ad altissima densità senza colli di bottiglia.'
+                ],
+                subtitles: [
+                    'Distribuzione istantanea su nodi globali con crittografia omomorfica e telemetria deterministica in tempo reale.',
+                    'Unifica pipeline di inferenza, vector database e orchestrazione multi-agente in un singolo protocollo.'
+                ],
+                features: [
+                    { icon: '⚡', title: 'Inferenza Sub-Millisecondo', desc: 'Routing predittivo sui nodi GPU più vicini con bilanciamento dinamico del carico.' },
+                    { icon: '🛡️', title: 'Sandbox Crittografata', desc: 'Isolamento hardware completo a livello kernel per proteggere pesi e dataset proprietari.' },
+                    { icon: '🕸️', title: 'Mesh Auto-Riparante', desc: 'Riconfigurazione automatica della topologia di rete in caso di picchi di traffico.' },
+                    { icon: '📊', title: 'Telemetria Granulare', desc: 'Tracciamento token-per-token con analisi dei costi e rilevamento anomalie.' },
+                    { icon: '🔄', title: 'Sync Multi-Regione', desc: 'Replicazione istantanea dello stato su 42 datacenter intercontinentali.' },
+                    { icon: '🧩', title: 'SDK Universale', desc: 'Integrazione nativa in 3 righe di codice per Rust, Python, TypeScript e Go.' }
+                ]
+            },
+            studio: {
+                name: 'Design & Creative Lab',
+                prefixes: ['Kinetik', 'Forma', 'Mono', 'Atelier', 'Prisma', 'Studio', 'Brutal', 'Vanguard'],
+                suffixes: ['Collective', 'Works', 'Design', 'Bureau', 'Craft', 'Haus', ' Foundry', 'Lab'],
+                badges: ['PREMIATO STUDIO DIGITALE', 'ESTETICA RADICALE • 2026', 'DESIGN SYSTEM SU MISURA', 'DIREZIONE CREATIVA'],
+                headlines: [
+                    'Scolpiamo esperienze digitali che rifiutano la banalità.',
+                    'Architettura visiva radicale per brand che vogliono dominare.',
+                    'Dove il rigore tipografico incontra l’ingegneria interattiva.',
+                    'Identità visive non convenzionali progettate per lasciare il segno.'
+                ],
+                subtitles: [
+                    'Progettiamo ecosistemi web ad alto impatto, design system scalabili e interfacce generative su misura.',
+                    'Uniamo artigianato tipografico svizzero, motion design fluido e performance frontend estreme.'
+                ],
+                features: [
+                    { icon: '✦', title: 'Identità & Art Direction', desc: 'Sistemi visivi memorabili costruiti su griglie matematiche e tipografia audace.' },
+                    { icon: '◈', title: 'Design System Atomici', desc: 'Librerie di componenti tokenizzati in perfetta sincronia tra Figma e codice.' },
+                    { icon: '✺', title: 'WebGL & Creative Coding', desc: 'Shader interattivi, fisica fluida e micro-interazioni a 120 fotogrammi al secondo.' },
+                    { icon: '▣', title: 'Architettura Editoriale', desc: 'Gerarchie di lettura cristalline pensate per massimizzare la conversione.' },
+                    { icon: '◉', title: 'Prototipazione Rapida', desc: 'Dal concetto astratto al prodotto navigabile ad alta fedeltà in soli 5 giorni.' },
+                    { icon: '⬡', title: 'Audit Accessibilità AAA', desc: 'Contrasti calibrati e navigazione da tastiera impeccabile su ogni dispositivo.' }
+                ]
+            },
+            fintech: {
+                name: 'Quantum DeFi & FinTech',
+                prefixes: ['Vault', 'Aurelia', 'Obsidian', 'Ledger', 'Liquidity', 'Solstice', 'Prime', 'Apex'],
+                suffixes: ['Protocol', 'Capital', 'Pay', 'Finance', 'Exchange', 'Reserve', 'Treasury', 'Chain'],
+                badges: ['LIQUIDITÀ ISTITUZIONALE', 'SETTLEMENT ATOMICO T+0', 'SICUREZZA MULTI-SIG', ' AUDITATO AL 100%'],
+                headlines: [
+                    'Infrastruttura finanziaria programmabile di nuova generazione.',
+                    'Il tesoro algoritmico progettato per capitali senza confini.',
+                    'Esecuzione istantanea, custodia blindata e rendimento trasparente.',
+                    'Ridefiniamo la velocità di movimento del valore globale.'
+                ],
+                subtitles: [
+                    'Movimenta asset globali con commissioni prossime allo zero, riconciliazione automatica e conformità integrata.',
+                    'Architettura di tesoreria enterprise con protezione crittografica zero-knowledge e API bancarie unificate.'
+                ],
+                features: [
+                    { icon: '💎', title: 'Settlement Istantaneo', desc: 'Regolamento transfrontaliero definitivo in meno di 400 millisecondi.' },
+                    { icon: '🔐', title: 'Custodia MPC Hardware', desc: 'Chiavi frazionate su moduli di sicurezza geograficamente distribuiti.' },
+                    { icon: '📈', title: 'Routing di Liquidità', desc: 'Aggregazione intelligente della profondità di mercato per azzerare lo slippage.' },
+                    { icon: '⚖️', title: 'Compliance Automatizzata', desc: 'Controlli antiriciclaggio e reportistica fiscale generati in tempo reale.' },
+                    { icon: '🌐', title: 'Tesoreria Multi-Valuta', desc: 'Gestione nativa di 35+ valute fiat e asset digitali in un unico cruscotto.' },
+                    { icon: '⚡', title: 'Webhook Garantiti', desc: 'Notifiche di transazione firmate crittograficamente con retry automatico.' }
+                ]
+            },
+            gamedev: {
+                name: 'Indie Game & Procedural Engine',
+                prefixes: ['Voxel', 'Pixel', 'Mythic', 'Rift', 'Nebula', 'Arcadia', 'Poly', 'Chunk'],
+                suffixes: ['Forge', 'Engine', 'Worlds', 'Interactive', 'Quest', 'Studios', 'Realm', 'Craft'],
+                badges: ['PROCEDURAL WORLD ENGINE', '60+ FPS GARANTITI', 'MULTIPLAYER NATIVO', 'SEED INFINITI'],
+                headlines: [
+                    'Genera universi giocabili infiniti a partireoph da un singolo seed.',
+                    'Il motore procedurale per mondi viventi e simulazioni fisiche.',
+                    'Costruisci biomi, dungeon e civiltà con algoritmi deterministici.',
+                    'Dalla prima scintilla creativa al lancio globale in multiplayer.'
+                ],
+                subtitles: [
+                    'Rendering voxel-ibrido, illuminazione globale dinamica e sincronizzazione di rete per migliaia di giocatori.',
+                    'Strumenti di worldbuilding nodale pensati per sviluppatori indie e team visionari.'
+                ],
+                features: [
+                    { icon: '🌍', title: 'Terreni Frattali Infinit', desc: 'Algoritmi Simplex e Perlin multi-ottava per montagne, oceani e caverne.' },
+                    { icon: '⚔️', title: 'Netcode Deterministico', desc: 'Sincronizzazione rollback ultra-compatta basata esclusivamente sugli input.' },
+                    { icon: '🔥', title: 'Illuminazione Dinamica', desc: 'Cicli giorno-notte e propagazione della luce calcolata in tempo reale.' },
+                    { icon: '🎒', title: 'Sistema Entità ECS', desc: 'Gestisci centinaia di migliaia di oggetti attivi senza cali di framerate.' },
+                    { icon: '🎵', title: 'Audio Spaziale Adattivo', desc: 'Colonne sonore generative che reagiscono al bioma e alle azioni di gioco.' },
+                    { icon: '🛠️', title: 'Modding API Integrata', desc: 'Supporto nativo per script Lua e WebAssembly creati dalla community.' }
+                ]
+            },
+            biotech: {
+                name: 'Eco-Architecture & Solarpunk',
+                prefixes: ['Sylva', 'Verde', 'Terra', 'Helios', 'Flora', 'Gaia', 'Bioma', 'Chloro'],
+                suffixes: ['Sphere', 'Grid', 'Bios', 'Canopy', 'Roots', 'Sustain', 'Cycle', 'Habitat'],
+                badges: ['IMPATTO CARBONIO NEGATIVO', 'ENERGIA RIGENERATIVA', 'SIMBIOSI NATURA-TECH', 'ISO-ECOLOGY'],
+                headlines: [
+                    'Tecnologia rigenerativa in perfetta armonia con la biosfera.',
+                    'Progettiamo gli ecosistemi urbani e agricoli del domani.',
+                    'Sensori botanici, micro-reti solari e architettura circolare.',
+                    'Dove l’intelligenza ambientale nutre il pianeta.'
+                ],
+                subtitles: [
+                    'Monitoraggio climatico ad alta precisione, ottimizzazione idrica autonoma e tracciabilità ecologica certificata.',
+                    'Costruiamo infrastrutture pulite che restituiscono più energia e biodiversità di quanta ne consumino.'
+                ],
+                features: [
+                    { icon: '🌱', title: 'Sensori Bio-Mimetici', desc: 'Rilevamento continuo di umidità, nutrienti del suolo e qualità dell’aria.' },
+                    { icon: '☀️', title: 'Micro-Grid Solari', desc: 'Distribuzione energetica peer-to-peer con accumulo predittivo.' },
+                    { icon: '💧', title: 'Idroponica Autonoma', desc: 'Cicli chiusi a risparmio idrico del 94% guidati da modelli agronomici.' },
+                    { icon: '🌳', title: 'Gemello Digitale Forestale', desc: 'Mappatura 3D della biodiversità e calcolo certificato della CO2 assorbita.' },
+                    { icon: '♻️', title: 'Materiali Circolari', desc: 'Tracciabilità completa del ciclo di vita di ogni componente impiegato.' },
+                    { icon: '🐝', title: 'Tutela Impollinatori', desc: 'Monitoraggio acustico non invasivo per proteggere gli ecosistemi locali.' }
+                ]
+            }
+        };
+
+        // ============================================================================
+        // 3. GENERATORE DI ARTE VETTORIALE SVG PROCEDURALE (Dipende dal Seed!)
+        // ============================================================================
+        function generateProceduralSVG(rng, palette, biomeId, svgType) {
+            const w = 520, h = 420;
+            const p = palette.primary;
+            const s = palette.secondary;
+            const txt = palette.text;
+            const surf = palette.surface;
+
+            if (svgType === 0) {
+                // Tipo 0: Topografia / Onde Armoniche Procedurali
+                let paths = '';
+                const layers = 9 + Math.floor(rng() * 6);
+                const freq = 0.012 + rng() * 0.015;
+                const phaseShift = rng() * Math.PI * 2;
+                for (let l = 0; l < layers; l++) {
+                    const yBase = 50 + (l * (h - 80) / layers);
+                    const amp = 18 + rng() * 28;
+                    let d = `M 0 ${yBase}`;
+                    for (let x = 0; x <= w; x += 20) {
+                        const y = yBase + Math.sin(x * freq + l * 0.55 + phaseShift) * amp + Math.cos(x * freq * 0.5 - l) * (amp * 0.4);
+                        d += ` L ${x} ${y.toFixed(1)}`;
+                    }
+                    const strokeCol = l % 2 === 0 ? p : s;
+                    const opacity = (0.35 + (l / layers) * 0.65).toFixed(2);
+                    paths += `<path d="${d}" fill="none" stroke="${strokeCol}" stroke-width="${l % 3 === 0 ? 3 : 1.5}" stroke-opacity="${opacity}" />`;
+                }
+                const orbX = Math.floor(140 + rng() * 240);
+                const orbY = Math.floor(110 + rng() * 180);
+                return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="seedGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="${p}" stop-opacity="0.5"/>
+                            <stop offset="100%" stop-color="${s}" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                    <rect width="${w}" height="${h}" rx="16" fill="${surf}"/>
+                    <circle cx="${orbX}" cy="${orbY}" r="140" fill="url(#seedGlow)"/>
+                    <circle cx="${orbX}" cy="${orbY}" r="${45 + Math.floor(rng()*30)}" fill="${p}" fill-opacity="0.18" stroke="${p}" stroke-width="2"/>
+                    ${paths}
+                </svg>`;
+            } else if (svgType === 1) {
+                // Tipo 1: Costellazione / Grafo Neurale Procedurale
+                const nodes = [];
+                const count = 14 + Math.floor(rng() * 8);
+                for (let i = 0; i < count; i++) {
+                    nodes.push({
+                        x: Math.floor(45 + rng() * (w - 90)),
+                        y: Math.floor(45 + rng() * (h - 90)),
+                        r: Math.floor(4 + rng() * 9),
+                        active: rng() > 0.45
+                    });
+                }
+                let lines = '';
+                for (let i = 0; i < count; i++) {
+                    for (let j = i + 1; j < count; j++) {
+                        const dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                        if (dist < 155) {
+                            const op = (1 - dist / 155) * 0.65;
+                            lines += `<line x1="${nodes[i].x}" y1="${nodes[i].y}" x2="${nodes[j].x}" y2="${nodes[j].y}" stroke="${i % 2 === 0 ? p : s}" stroke-opacity="${op.toFixed(2)}" stroke-width="1.5"/>`;
+                        }
+                    }
+                }
+                const circles = nodes.map(n => `
+                    <circle cx="${n.x}" cy="${n.y}" r="${n.r * 2.2}" fill="${n.active ? p : s}" fill-opacity="0.12"/>
+                    <circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${n.active ? p : s}" stroke="${surf}" stroke-width="2"/>
+                `).join('');
+                return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="${w}" height="${h}" rx="16" fill="${surf}"/>
+                    <g opacity="0.15">
+                        <line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="${txt}" stroke-dasharray="4 4"/>
+                        <line x1="${w/2}" y1="0" x2="${w/2}" y2="${h}" stroke="${txt}" stroke-dasharray="4 4"/>
+                    </g>
+                    ${lines}
+                    ${circles}
+                </svg>`;
+            } else if (svgType === 2) {
+                // Tipo 2: Griglia Geometrica Bauhaus / Brutalist Blocks
+                const cols = 4, rows = 3;
+                const cellW = (w - 60) / cols;
+                const cellH = (h - 60) / rows;
+                let shapes = '';
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const x = 30 + c * cellW;
+                        const y = 30 + r * cellH;
+                        const pick = Math.floor(rng() * 4);
+                        const col = rng() > 0.5 ? p : s;
+                        if (pick === 0) {
+                            shapes += `<rect x="${x+6}" y="${y+6}" width="${cellW-12}" height="${cellH-12}" rx="8" fill="${col}" fill-opacity="0.85" stroke="${txt}" stroke-width="2"/>`;
+                        } else if (pick === 1) {
+                            shapes += `<circle cx="${x + cellW/2}" cy="${y + cellH/2}" r="${Math.min(cellW, cellH)/2 - 8}" fill="${col}" stroke="${txt}" stroke-width="2"/>`;
+                        } else if (pick === 2) {
+                            shapes += `<polygon points="${x+6},${y+cellH-6} ${x+cellW/2},${y+6} ${x+cellW-6},${y+cellH-6}" fill="${col}" fill-opacity="0.6" stroke="${txt}" stroke-width="2"/>`;
+                        } else {
+                            shapes += `<rect x="${x+6}" y="${y+6}" width="${cellW-12}" height="${cellH-12}" fill="none" stroke="${txt}" stroke-opacity="0.25" stroke-width="1.5"/>
+                                       <circle cx="${x + cellW/2}" cy="${y + cellH/2}" r="10" fill="${txt}"/>`;
+                        }
+                    }
+                }
+                return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="${w}" height="${h}" rx="16" fill="${surf}"/>
+                    ${shapes}
+                </svg>`;
+            } else {
+                // Tipo 3: Cyber Rings & Radar HUD
+                const cx = w / 2, cy = h / 2;
+                let rings = '';
+                const numRings = 5 + Math.floor(rng() * 4);
+                for (let i = 1; i <= numRings; i++) {
+                    const rad = i * 28 + Math.floor(rng() * 10);
+                    const dash = `${Math.floor(20 + rng() * 80)} ${Math.floor(10 + rng() * 40)}`;
+                    rings += `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="${i % 2 === 0 ? p : s}" stroke-width="${i === numRings ? 2.5 : 1.5}" stroke-dasharray="${dash}" stroke-opacity="${(0.35 + i*0.1).toFixed(2)}"/>`;
+                }
+                return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="${w}" height="${h}" rx="16" fill="${surf}"/>
+                    <line x1="${cx}" y1="20" x2="${cx}" y2="${h-20}" stroke="${p}" stroke-opacity="0.2" stroke-dasharray="3 6"/>
+                    <line x1="20" y1="${cy}" x2="${w-20}" y2="${cy}" stroke="${p}" stroke-opacity="0.2" stroke-dasharray="3 6"/>
+                    ${rings}
+                    <circle cx="${cx}" cy="${cy}" r="18" fill="${p}"/>
+                </svg>`;
+            }
+        }
+
+        // ============================================================================
+        // 4. ALGORITMO PRINCIPALE DI WORLDGEN (Dal Seed -> Sito Web Statico Completo)
+        // ============================================================================
+        let currentGeneratedHTML = '';
+
+        function generateWorld() {
+            const rawSeed = document.getElementById('seed-input').value.trim() || 'DEFAULT-SEED';
+            const seedHash = cyrb128(rawSeed);
+            const rng = mulberry32(seedHash[0]);
+
+            // Coordinate fittizie stile Minecraft derivate dall'hash
+            const coordX = (seedHash[0] % 20000) - 10000;
+            const coordY = (seedHash[1] % 256);
+            const coordZ = (seedHash[2] % 20000) - 10000;
+
+            document.getElementById('dna-hash').textContent = '0x' + seedHash[0].toString(16).toUpperCase().padStart(8, '0');
+            document.getElementById('coord-x').textContent = coordX;
+            document.getElementById('coord-y').textContent = coordY;
+            document.getElementById('coord-z').textContent = coordZ;
+
+            // 1. Selezione Bioma
+            const biomeKeys = Object.keys(BIOMES);
+            const pickedBiomeKey = biomeKeys[Math.floor(rng() * biomeKeys.length)];
+            const overrideBiome = document.getElementById('override-biome').value;
+            const activeBiome = BIOMES[overrideBiome === 'auto' ? pickedBiomeKey : overrideBiome];
+
+            // 2. Selezione Settore
+            const sectorKeys = Object.keys(SECTORS);
+            const pickedSectorKey = sectorKeys[Math.floor(rng() * sectorKeys.length)];
+            const overrideSector = document.getElementById('override-sector').value;
+            const activeSector = SECTORS[overrideSector === 'auto' ? pickedSectorKey : overrideSector];
+
+            // 3. Generazione Armonia Cromatica HSL basata sul Seed + Bioma
+            const baseHue = Math.floor(rng() * 360);
+            const harmonyOffset = [35, 120, 150, 180, 210][Math.floor(rng() * 5)];
+            const secondaryHue = (baseHue + harmonyOffset) % 360;
+
+            let palette = {};
+            if (activeBiome.id === 'luxury') {
+                palette = {
+                    bg: '#080809',
+                    surface: '#121215',
+                    primary: hslToHex(38 + (rng() * 14), 68, 62), // Oro / Champagne
+                    secondary: hslToHex(baseHue, 35, 55),
+                    text: '#f5f3ef',
+                    muted: '#9a968e',
+                    border: 'rgba(212, 175, 55, 0.24)'
+                };
+            } else if (activeBiome.id === 'brutalist') {
+                palette = {
+                    bg: hslToHex(baseHue, 35, 95),
+                    surface: '#ffffff',
+                    primary: hslToHex(baseHue, 92, 54),
+                    secondary: hslToHex(secondaryHue, 90, 58),
+                    text: '#0d0d0d',
+                    muted: '#404040',
+                    border: '#0d0d0d'
+                };
+            } else if (activeBiome.id === 'swiss') {
+                const warmPaper = rng() > 0.4;
+                palette = {
+                    bg: warmPaper ? '#f6f4f0' : '#ffffff',
+                    surface: warmPaper ? '#ebe7df' : '#f3f4f6',
+                    primary: hslToHex(baseHue, 85, 45),
+                    secondary: '#111111',
+                    text: '#0f0f0f',
+                    muted: '#525252',
+                    border: 'rgba(15, 15, 15, 0.18)'
+                };
+            } else if (activeBiome.id === 'solarpunk') {
+                palette = {
+                    bg: '#f4f1ea',
+                    surface: '#e8e3d7',
+                    primary: hslToHex(135 + rng() * 35, 62, 32), // Verde foresta/salvia
+                    secondary: hslToHex(32 + rng() * 25, 85, 52), // Ambra solare
+                    text: '#1b2a1e',
+                    muted: '#4d5e50',
+                    border: 'rgba(27, 42, 30, 0.16)'
+                };
+            } else {
+                // Dark Biomes (Cyberpunk / Glass SaaS)
+                palette = {
+                    bg: hslToHex(baseHue, 28, 5),
+                    surface: hslToHex(baseHue, 24, 10),
+                    primary: hslToHex(baseHue, 92, 60),
+                    secondary: hslToHex(secondaryHue, 88, 62),
+                    text: '#f3f4f6',
+                    muted: '#9ca3af',
+                    border: `rgba(255, 255, 255, 0.12)`
+                };
+            }
+
+            // 4. Generazione Brand Identity e Copywriting dal Seed
+            const brandPrefix = activeSector.prefixes[Math.floor(rng() * activeSector.prefixes.length)];
+            const brandSuffix = activeSector.suffixes[Math.floor(rng() * activeSector.suffixes.length)];
+            const brandName = `${brandPrefix}${brandSuffix}`;
+            const heroBadge = activeSector.badges[Math.floor(rng() * activeSector.badges.length)];
+            const heroHeadline = activeSector.headlines[Math.floor(rng() * activeSector.headlines.length)];
+            const heroSubtitle = activeSector.subtitles[Math.floor(rng() * activeSector.subtitles.length)];
+
+            // 5. Selezione Struttura Hero & Arte SVG
+            const heroTypes = ['split', 'center', 'bento'];
+            const pickedHero = heroTypes[Math.floor(rng() * heroTypes.length)];
+            const overrideHero = document.getElementById('override-hero').value;
+            const activeHero = overrideHero === 'auto' ? pickedHero : overrideHero;
+
+            const svgType = Math.floor(rng() * 4);
+            const svgArtwork = generateProceduralSVG(rng, palette, activeBiome.id, svgType);
+
+            // 6. Metriche Procedurali
+            const metric1Val = (99.9 + rng() * 0.09).toFixed(2) + '%';
+            const metric2Val = Math.floor(12 + rng() * 85) + 'ms';
+            const metric3Val = (1.2 + rng() * 8.5).toFixed(1) + 'M+';
+            const metric4Val = Math.floor(40 + rng() * 160) + 'x';
+
+            // 7. Selezione Feature Cards (3 o 6)
+            const numFeatures = rng() > 0.35 ? 6 : 3;
+            const selectedFeatures = activeSector.features.slice(0, numFeatures);
+
+            // 8. Prezzi Procedurali
+            const basePrice = Math.floor(19 + rng() * 30);
+            const proPrice = basePrice * 3 + 9;
+            const entPrice = basePrice * 9 + 9;
+
+            // Aggiorna la Sidebar DNA nell'interfaccia del tool
+            updateDnaSidebar({
+                seed: rawSeed,
+                biome: activeBiome,
+                sector: activeSector,
+                brandName,
+                heroType: activeHero,
+                svgType,
+                palette,
+                numFeatures
+            });
+
+            // Costruisci il documento HTML statico completo
+            currentGeneratedHTML = buildStandaloneWebsiteHTML({
+                seed: rawSeed,
+                hashHex: '0x' + seedHash[0].toString(16).toUpperCase(),
+                biome: activeBiome,
+                palette,
+                brandName,
+                heroBadge,
+                heroHeadline,
+                heroSubtitle,
+                heroType: activeHero,
+                svgArtwork,
+                metrics: [
+                    { label: 'Uptime Garantito', value: metric1Val },
+                    { label: 'Latenza Media', value: metric2Val },
+                    { label: 'Operazioni / Sec', value: metric3Val },
+                    { label: 'ROI Moltiplicatore', value: metric4Val }
+                ],
+                features: selectedFeatures,
+                prices: { base: basePrice, pro: proPrice, ent: entPrice }
+            });
+
+            // Inietta nell'iframe e nell'area codice
+            const iframe = document.getElementById('world-iframe');
+            iframe.srcdoc = currentGeneratedHTML;
+
+            document.getElementById('source-code-area').value = currentGeneratedHTML;
+            const sizeKb = (new Blob([currentGeneratedHTML]).size / 1024).toFixed(1);
+            document.getElementById('code-size-badge').textContent = `${sizeKb} KB`;
+            document.getElementById('browser-url').textContent = `https://${brandName.toLowerCase()}.world/seed/${encodeURIComponent(rawSeed)}`;
+            document.getElementById('browser-biome-tag').textContent = activeBiome.name.toUpperCase();
+        }
+
+        // ============================================================================
+        // 5. COSTRUTTORE DEL CODICE HTML/CSS AUTONOMO DEL SITO GENERATO
+        // ============================================================================
+        function buildStandaloneWebsiteHTML(cfg) {
+            const { biome, palette, brandName, heroBadge, heroHeadline, heroSubtitle, heroType, svgArtwork, metrics, features, prices, seed, hashHex } = cfg;
+
+            // Stile ombre in base al bioma
+            let cardShadow = 'none';
+            if (biome.shadowStyle === 'hard') cardShadow = `6px 6px 0px ${palette.text}`;
+            else if (biome.shadowStyle === 'glow') cardShadow = `0 0 28px -6px ${palette.primary}44`;
+            else if (biome.shadowStyle === 'soft') cardShadow = `0 20px 40px -15px rgba(0,0,0,0.45)`;
+            else if (biome.shadowStyle === 'warm') cardShadow = `0 12px 24px -8px rgba(27,42,30,0.08)`;
+
+            // Pattern di sfondo CSS
+            let bgPatternCSS = '';
+            if (biome.pattern === 'grid') {
+                bgPatternCSS = `background-image: linear-gradient(to right, ${palette.border} 1px, transparent 1px), linear-gradient(to bottom, ${palette.border} 1px, transparent 1px); background-size: 48px 48px;`;
+            } else if (biome.pattern === 'dots') {
+                bgPatternCSS = `background-image: radial-gradient(${palette.text}22 1.5px, transparent 1.5px); background-size: 24px 24px;`;
+            } else if (biome.pattern === 'aurora') {
+                bgPatternCSS = `background-image: radial-gradient(circle at 15% 20%, ${palette.primary}25 0%, transparent 45%), radial-gradient(circle at 85% 70%, ${palette.secondary}22 0%, transparent 45%);`;
+            }
+
+            // Generazione HTML della Hero in base al gene HeroType
+            let heroSectionHTML = '';
+            if (heroType === 'split') {
+                heroSectionHTML = `
+                <section class="hero-split container">
+                    <div class="hero-copy">
+                        <div class="badge">${heroBadge}</div>
+                        <h1 class="hero-title">${heroHeadline}</h1>
+                        <p class="hero-sub">${heroSubtitle}</p>
+                        <div class="hero-actions">
+                            <a href="#pricing" class="btn btn-primary">Inizia Ora &rarr;</a>
+                            <a href="#features" class="btn btn-secondary">Esplora Architettura</a>
+                        </div>
+                    </div>
+                    <div class="hero-visual card">
+                        ${svgArtwork}
+                    </div>
+                </section>`;
+            } else if (heroType === 'center') {
+                heroSectionHTML = `
+                <section class="hero-center container">
+                    <div class="badge">${heroBadge}</div>
+                    <h1 class="hero-title-xl">${heroHeadline}</h1>
+                    <p class="hero-sub-center">${heroSubtitle}</p>
+                    <div class="hero-actions" style="justify-content:center;">
+                        <a href="#pricing" class="btn btn-primary">Lancia Istanza</a>
+                        <a href="#features" class="btn btn-secondary">Documentazione Tecnica</a>
+                    </div>
+                    <div class="hero-banner-art card">
+                        ${svgArtwork}
+                    </div>
+                </section>`;
+            } else {
+                // Bento Hero
+                heroSectionHTML = `
+                <section class="container" style="padding: 4rem 0;">
+                    <div class="bento-hero-grid">
+                        <div class="card bento-main">
+                            <div class="badge">${heroBadge}</div>
+                            <h1 class="hero-title" style="margin-top:1rem;">${heroHeadline}</h1>
+                            <p class="hero-sub">${heroSubtitle}</p>
+                            <div class="hero-actions" style="margin-top:2rem;">
+                                <a href="#pricing" class="btn btn-primary">Attiva Protocollo</a>
+                                <a href="#features" class="btn btn-secondary">Specifiche</a>
+                            </div>
+                        </div>
+                        <div class="card bento-side">
+                            ${svgArtwork}
+                        </div>
+                    </div>
+                </section>`;
+            }
+
+            const metricsHTML = metrics.map(m => `
+                <div class="metric-box">
+                    <div class="metric-val">${m.value}</div>
+                    <div class="metric-lbl">${m.label}</div>
+                </div>
+            `).join('');
+
+            const featuresHTML = features.map(f => `
+                <div class="card feature-card">
+                    <div class="feature-icon">${f.icon}</div>
+                    <h3>${f.title}</h3>
+                    <p>${f.desc}</p>
+                </div>
+            `).join('');
+
+            return `<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${brandName} — Generato dal Seed ${seed}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="${biome.fontImport}" rel="stylesheet">
+    <style>
+        :root {
+            --bg: ${palette.bg};
+            --surface: ${palette.surface};
+            --primary: ${palette.primary};
+            --secondary: ${palette.secondary};
+            --text: ${palette.text};
+            --muted: ${palette.muted};
+            --border: ${palette.border};
+            --radius: ${biome.radius};
+            --bw: ${biome.borderWidth};
+            --font-display: ${biome.fontDisplay};
+            --font-body: ${biome.fontBody};
+            --shadow: ${cardShadow};
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            ${bgPatternCSS}
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        /* Navbar */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+            background: color-mix(in srgb, var(--bg) 82%, transparent);
+            border-bottom: var(--bw) solid var(--border);
+        }
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 76px;
+        }
+        .brand {
+            font-family: var(--font-display);
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.02em;
+        }
+        .brand-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 12px var(--primary);
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+
+        /* Buttons & Badges */
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border-radius: var(--radius);
+            background: color-mix(in srgb, var(--primary) 16%, transparent);
+            color: var(--primary);
+            border: var(--bw) solid var(--primary);
+            margin-bottom: 1.25rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.9rem 1.75rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: var(--radius);
+            border: var(--bw) solid var(--border);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary {
+            background: var(--primary);
+            color: ${biome.isDark ? '#050505' : '#ffffff'};
+            border-color: ${biome.id === 'brutalist' ? palette.text : palette.primary};
+            box-shadow: var(--shadow);
+        }
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: var(--bw) solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* Hero Variants */
+        .hero-split {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 3.5rem;
+            align-items: center;
+            padding: 5rem 1.5rem;
+        }
+        .hero-center {
+            text-align: center;
+            padding: 5rem 1.5rem 3rem;
+            max-width: 900px;
+        }
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.4rem, 4.5vw, 4rem);
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.25rem;
+        }
+        .hero-title-xl {
+            font-family: var(--font-display);
+            font-size: clamp(2.8rem, 5.5vw, 4.75rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.5rem;
+        }
+        .hero-sub, .hero-sub-center {
+            font-size: 1.12rem;
+            color: var(--muted);
+            margin-bottom: 2rem;
+            max-width: 580px;
+        }
+        .hero-sub-center { margin-left: auto; margin-right: auto; }
+        .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .hero-visual { padding: 1.25rem; min-height: 360px; display: flex; align-items: center; }
+        .hero-banner-art { margin-top: 3rem; padding: 1.5rem; max-height: 380px; overflow: hidden; }
+        .bento-hero-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr;
+            gap: 1.5rem;
+        }
+        .bento-main { padding: 3rem; }
+        .bento-side { padding: 1.5rem; display: flex; align-items: center; justify-content: center; }
+
+        /* Metrics Bar */
+        .metrics-bar {
+            border-top: var(--bw) solid var(--border);
+            border-bottom: var(--bw) solid var(--border);
+            background: var(--surface);
+            padding: 2.5rem 0;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            text-align: center;
+        }
+        .metric-val {
+            font-family: var(--font-display);
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .metric-lbl {
+            font-size: 0.85rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+        }
+
+        /* Features Grid */
+        .section { padding: 5.5rem 0; }
+        .section-header { text-align: center; max-width: 680px; margin: 0 auto 3.5rem; }
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 3.5vw, 3rem);
+            margin-bottom: 0.75rem;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 1.75rem;
+        }
+        .feature-card { padding: 2.25rem; transition: transform 0.2s; }
+        .feature-card:hover { transform: translateY(-4px); }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius);
+            background: color-mix(in srgb, var(--primary) 15%, transparent);
+            border: var(--bw) solid var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 1.25rem;
+        }
+        .feature-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            margin-bottom: 0.6rem;
+        }
+        .feature-card p { color: var(--muted); font-size: 0.95rem; }
+
+        /* Pricing Section */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 1.75rem;
+            align-items: stretch;
+        }
+        .price-card {
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .price-card.featured {
+            border-color: var(--primary);
+            position: relative;
+        }
+        .price-amount {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 1rem 0;
+        }
+        .price-list {
+            list-style: none;
+            margin: 1.5rem 0 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: var(--bw) solid var(--border);
+            padding: 3rem 0;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        @media (max-width: 860px) {
+            .hero-split, .bento-hero-grid { grid-template-columns: 1fr; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-inner">
+            <a href="#" class="brand">
+                <span class="brand-dot"></span>
+                ${brandName}
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Architettura</a></li>
+                <li><a href="#metrics">Telemetria</a></li>
+                <li><a href="#pricing">Piani</a></li>
+            </ul>
+            <a href="#pricing" class="btn btn-primary" style="padding: 0.55rem 1.2rem; font-size: 0.85rem;">Accesso Rapido</a>
+        </div>
+    </nav>
+
+    ${heroSectionHTML}
+
+    <section id="metrics" class="metrics-bar">
+        <div class="container metrics-grid">
+            ${metricsHTML}
+        </div>
+    </section>
+
+    <section id="features" class="section container">
+        <div class="section-header">
+            <div class="badge">ECOSISTEMA MODULARE</div>
+            <h2 class="section-title">Progettato per scalare oltre ogni limite</h2>
+            <p style="color: var(--muted);">Ogni componente di ${brandName} è generato e calibrato per offrire prestazioni deterministiche.</p>
+        </div>
+        <div class="features-grid">
+            ${featuresHTML}
+        </div>
+    </section>
+
+    <section id="pricing" class="section container">
+        <div class="section-header">
+            <div class="badge">PIANI TRASPARENTI</div>
+            <h2 class="section-title">Scegli la potenza del tuo nodo</h2>
+        </div>
+        <div class="pricing-grid">
+            <div class="card price-card">
+                <div>
+                    <h3>Starter Seed</h3>
+                    <p style="color:var(--muted); font-size:0.9rem;">Per team agili e prototipazione</p>
+                    <div class="price-amount">€${prices.base}<span style="font-size:1rem; color:var(--muted);">/mese</span></div>
+                    <ul class="price-list">
+                        <li>✓ 100.000 richieste incluse</li>
+                        <li>✓ Accesso al cluster standard</li>
+                        <li>✓ Telemetria base 7 giorni</li>
+                    </ul>
+                </div>
+                <a href="#" class="btn btn-secondary" style="width:100%;">Inizia Gratis</a>
+            </div>
+
+            <div class="card price-card featured">
+                <div>
+                    <div class="badge" style="margin-bottom:0.5rem;">PIÙ SCELTO</div>
+                    <h3>Pro Cluster</h3>
+                    <p style="color:var(--muted); font-size:0.9rem;">Per applicazioni in produzione</p>
+                    <div class="price-amount" style="color:var(--primary);">€${prices.pro}<span style="font-size:1rem; color:var(--muted);">/mese</span></div>
+                    <ul class="price-list">
+                        <li>✓ Traffico illimitato multi-regione</li>
+                        <li>✓ SLA garantito 99.99%</li>
+                        <li>✓ Supporto ingegneristico 24/7</li>
+                        <li>✓ Backup istantanei immutabili</li>
+                    </ul>
+                </div>
+                <a href="#" class="btn btn-primary" style="width:100%;">Attiva Pro Cluster</a>
+            </div>
+
+            <div class="card price-card">
+                <div>
+                    <h3>Enterprise Custom</h3>
+                    <p style="color:var(--muted); font-size:0.9rem;">Infrastruttura dedicata</p>
+                    <div class="price-amount">€${prices.ent}<span style="font-size:1rem; color:var(--muted);">/mese</span></div>
+                    <ul class="price-list">
+                        <li>✓ Nodi hardware dedicati</li>
+                        <li>✓ Deploy on-premise o VPC privata</li>
+                        <li>✓ Audit di sicurezza personalizzato</li>
+                    </ul>
+                </div>
+                <a href="#" class="btn btn-secondary" style="width:100%;">Contatta Sales</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-inner">
+            <div>&copy; 2026 <strong>${brandName}</strong>. Tutti i diritti riservati.</div>
+            <div style="font-family: monospace;">WORLDGEN SEED: <strong>${seed}</strong> (${hashHex}) • BIOME: ${biome.name}</div>
+        </div>
+    </footer>
+
+</body>
+</html>`;
+        }
+
+        // ============================================================================
+        // 6. AGGIORNAMENTO UI DEL TOOL (DNA Sidebar, Controlli, Clipboard, Download)
+        // ============================================================================
+        function updateDnaSidebar(info) {
+            const { palette, biome, sector, brandName, heroType, svgType, numFeatures } = info;
+
+            document.getElementById('dna-mode').textContent = biome.isDark ? 'DARK BIOME' : 'LIGHT BIOME';
+
+            // Swatches colori
+            const swatchesEl = document.getElementById('palette-swatches');
+            const colors = [
+                { label: 'BG', hex: palette.bg },
+                { label: 'SURF', hex: palette.surface },
+                { label: 'PRIM', hex: palette.primary },
+                { label: 'SEC', hex: palette.secondary },
+                { label: 'TXT', hex: palette.text }
+            ];
+            swatchesEl.innerHTML = colors.map(c => `
+                <div class="rounded border border-white/15 flex flex-col justify-end p-1 text-[9px] font-mono cursor-pointer transition-transform hover:scale-105" 
+                     style="background:${c.hex}; color:${c.label === 'TXT' && biome.isDark ? '#000' : '#fff'}; text-shadow: 0 1px 2px rgba(0,0,0,0.8);"
+                     title="Clicca per copiare ${c.hex}"
+                     onclick="copyToClipboard('${c.hex}')">
+                    ${c.hex}
+                </div>
+            `).join('');
+
+            // Tabella Geni
+            const svgNames = ['Onde Topografiche', 'Grafo Costellazione', 'Geometria Bauhaus', 'Anelli Cyber Radar'];
+            const dnaRows = [
+                ['Brand Generato', brandName],
+                ['Bioma Attivo', biome.name],
+                ['Settore', sector.name],
+                ['Layout Hero', heroType.toUpperCase()],
+                ['Algoritmo SVG', svgNames[svgType]],
+                ['Font Display', biome.fontDisplay.split(',')[0].replace(/'/g, '')],
+                ['Border Radius', biome.radius],
+                ['Moduli Feature', `${numFeatures} Card`]
+            ];
+
+            document.getElementById('dna-details').innerHTML = dnaRows.map(([k, v]) => `
+                <div class="flex items-center justify-between py-1 border-b border-brand-border/60">
+                    <span class="text-brand-muted">${k}</span>
+                    <span class="text-white font-medium">${v}</span>
+                </div>
+            `).join('');
+        }
+
+        function setSeed(val) {
+            document.getElementById('seed-input').value = val;
+            generateWorld();
+        }
+
+        function stepSeed(delta) {
+            const input = document.getElementById('seed-input');
+            const val = input.value.trim();
+            const match = val.match(/^(.*?)(\d+)$/);
+            if (match) {
+                const nextNum = Math.max(0, parseInt(match[2], 10) + delta);
+                input.value = `${match[1]}${nextNum}`;
+            } else {
+                input.value = `${val}-${delta > 0 ? 1 : 0}`;
+            }
+            generateWorld();
+        }
+
+        function randomizeSeed() {
+            const wordsA = ['NOVA', 'CYBER', 'VOXEL', 'AETHER', 'KRONOS', 'SOLAR', 'OBSIDIAN', 'PRISMA', 'ATLAS', 'NEXUS', 'ZENITH', 'OMEGA'];
+            const wordsB = ['LABS', 'CORE', 'SEED', 'BIOME', 'GRID', 'CRAFT', 'PULSE', 'VAULT', 'FORGE', 'REALM'];
+            const w1 = wordsA[Math.floor(Math.random() * wordsA.length)];
+            const w2 = wordsB[Math.floor(Math.random() * wordsB.length)];
+            const num = Math.floor(100 + Math.random() * 8999);
+            document.getElementById('seed-input').value = `${w1}-${w2}-${num}`;
+            generateWorld();
+        }
+
+        function setViewport(width) {
+            const wrapper = document.getElementById('iframe-wrapper');
+            wrapper.style.width = width;
+            document.querySelectorAll('.vp-btn').forEach(b => {
+                b.classList.remove('text-emerald-400', 'bg-brand-card');
+                b.classList.add('text-brand-muted');
+            });
+            if (width === '100%') document.getElementById('vp-desktop').classList.add('text-emerald-400', 'bg-brand-card');
+            if (width === '768px') document.getElementById('vp-tablet').classList.add('text-emerald-400', 'bg-brand-card');
+            if (width === '390px') document.getElementById('vp-mobile').classList.add('text-emerald-400', 'bg-brand-card');
+        }
+
+        function switchMainView(mode) {
+            const pView = document.getElementById('view-preview');
+            const cView = document.getElementById('view-code');
+            const tPrev = document.getElementById('tab-preview');
+            const tCode = document.getElementById('tab-code');
+
+            if (mode === 'preview') {
+                pView.classList.remove('hidden');
+                cView.classList.add('hidden');
+                tPrev.className = 'px-3 py-1 rounded text-xs font-medium bg-brand-card text-white transition-colors flex items-center gap-1';
+                tCode.className = 'px-3 py-1 rounded text-xs font-medium text-brand-muted hover:text-white transition-colors flex items-center gap-1';
+            } else {
+                pView.classList.add('hidden');
+                cView.classList.remove('hidden');
+                tCode.className = 'px-3 py-1 rounded text-xs font-medium bg-brand-card text-white transition-colors flex items-center gap-1';
+                tPrev.className = 'px-3 py-1 rounded text-xs font-medium text-brand-muted hover:text-white transition-colors flex items-center gap-1';
+            }
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text);
+            } else {
+                const temp = document.createElement('textarea');
+                temp.value = text;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                temp.remove();
+            }
+        }
+
+        function copyGeneratedCode() {
+            copyToClipboard(currentGeneratedHTML);
+            const btn = document.getElementById('btn-copy-html');
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<span class="material-symbols-outlined text-[16px] text-emerald-400">check</span><span>Copiato!</span>`;
+            setTimeout(() => btn.innerHTML = orig, 1500);
+        }
+
+        function downloadGeneratedHtml() {
+            const seed = document.getElementById('seed-input').value.trim() || 'website';
+            const blob = new Blob([currentGeneratedHTML], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `worldgen-${seed.toLowerCase().replace(/[^a-z0-9-_]/g, '-')}.html`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        // Listener sul campo Seed in tempo reale
+        document.getElementById('seed-input').addEventListener('input', generateWorld);
+
+        // Avvio iniziale
+        window.addEventListener('DOMContentLoaded', generateWorld);
+    </script>
+</body>
+</html>

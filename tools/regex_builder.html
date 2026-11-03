@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Regex Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--bg-element:#141414;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#4fc3f7;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1000px;display:flex;overflow:hidden;}
+.builder{width:350px;border-right:1px solid var(--border);padding:1.5rem;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+select, input, button{background:#000;color:#fff;border:1px solid var(--border);padding:8px;border-radius:6px;outline:none;}
+button{background:var(--bg-element);cursor:pointer;font-weight:600;} button:hover{background:#222;}
+.rule-row{display:flex;gap:5px;align-items:center;background:var(--bg-element);padding:8px;border-radius:6px;}
+.result-pane{flex:1;display:flex;flex-direction:column;}
+.regex-code{background:#111;color:var(--accent);padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:1.5rem;border-bottom:1px solid var(--border);word-break:break-all;}
+textarea{flex:1;background:transparent;color:#aaa;border:none;padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;resize:none;outline:none;}
+</style></head><body>
+<div class="container">
+    <div class="builder">
+        <div style="font-size:0.8rem;color:#888;margin-bottom:10px;">Aggiungi Regola</div>
+        <div style="display:flex;gap:5px;">
+            <select id="rule-type">
+                <option value="[a-zA-Z]+">Lettere (a-z, A-Z)</option>
+                <option value="\d+">Numeri (0-9)</option>
+                <option value="[a-zA-Z0-9]+">Alfanumerico</option>
+                <option value="\s">Spazio Vuoto</option>
+                <option value="custom">Stringa Esatta...</option>
+            </select>
+            <button onclick="addRule()">+ Aggiungi</button>
+        </div>
+        <div id="rules-list" style="margin-top:15px;display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
+    <div class="result-pane">
+        <div class="regex-code" id="rgx-out">^$</div>
+        <textarea id="test" placeholder="Testa la regex generata qui...">Test123</textarea>
+    </div>
+</div>
+<script>
+    let rules = []; const rList = document.getElementById('rules-list'), rOut = document.getElementById('rgx-out'), tst = document.getElementById('test');
+    function addRule() {
+        let val = document.getElementById('rule-type').value;
+        if(val === 'custom') { val = prompt("Inserisci la stringa esatta:"); if(!val) return; val = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        rules.push(val); render();
+    }
+    function remove(idx) { rules.splice(idx, 1); render(); }
+    function render() {
+        rList.innerHTML = '';
+        rules.forEach((r, i) => { rList.innerHTML += `<div class="rule-row"><span style="flex:1;font-family:monospace;font-size:0.8rem;">${r}</span><button onclick="remove(${i})" style="padding:2px 6px;color:#ff5252;">X</button></div>`; });
+        const finalRegex = `^${rules.join('')}$`; rOut.innerText = finalRegex;
+        try { const rx = new RegExp(finalRegex); tst.style.color = rx.test(tst.value) ? '#81c995' : '#ff5252'; } catch(e){}
+    }
+    tst.addEventListener('input', render); render();
+</script></body></html>

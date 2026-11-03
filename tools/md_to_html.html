@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Markdown to HTML</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root{--bg-body:#000;--bg-container:#0a0a0a;--border:rgba(255,255,255,0.08);--text-primary:#ededed;--accent:#64b5f6;}
+*{margin:0;padding:0;box-sizing:border-box;} body{background:var(--bg-body);color:var(--text-primary);font-family:system-ui,sans-serif;display:flex;justify-content:center;height:100vh;padding:1.5rem;}
+.container{background:var(--bg-container);border:1px solid var(--border);border-radius:12px;width:100%;max-width:1200px;display:flex;flex-direction:column;overflow:hidden;}
+.header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;}
+.tabs{display:flex;gap:10px;} .tab{background:transparent;color:#888;border:none;cursor:pointer;font-weight:bold;} .tab.active{color:var(--accent);}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex-grow:1;overflow:hidden;}
+textarea{background:transparent;color:#aaa;border:none;padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.9rem;resize:none;outline:none;border-right:1px solid var(--border);}
+.preview-pane{padding:1.5rem;overflow-y:auto;background:#111;}
+.preview-pane h1,.preview-pane h2{border-bottom:1px solid #333;padding-bottom:5px;margin-bottom:10px;} .preview-pane p{margin-bottom:10px;line-height:1.6;}
+.preview-pane code{background:#000;padding:2px 5px;border-radius:4px;color:var(--accent);font-family:'JetBrains Mono',monospace;}
+.code-out{display:none;background:#111;color:var(--accent);padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:0.85rem;white-space:pre-wrap;overflow-y:auto;}
+</style></head><body>
+<div class="container">
+    <div class="header">
+        <h2>Markdown Editor</h2>
+        <div class="tabs">
+            <button class="tab active" onclick="setMode('visual')" id="t-vis">Anteprima Visiva</button>
+            <button class="tab" onclick="setMode('code')" id="t-cod">Codice HTML</button>
+        </div>
+    </div>
+    <div class="grid">
+        <textarea id="md-in" placeholder="Scrivi in markdown...&#10;&#10;# Titolo&#10;**Grassetto** e *corsivo*!"></textarea>
+        <div style="display:flex;flex-direction:column;overflow:hidden;">
+            <div id="vis-out" class="preview-pane"></div>
+            <div id="cod-out" class="code-out"></div>
+        </div>
+    </div>
+</div>
+<script>
+    const i=document.getElementById('md-in'), v=document.getElementById('vis-out'), c=document.getElementById('cod-out');
+    function render() { const html = marked.parse(i.value); v.innerHTML = html; c.innerText = html; }
+    function setMode(m) {
+        document.getElementById('t-vis').classList.toggle('active', m==='visual');
+        document.getElementById('t-cod').classList.toggle('active', m==='code');
+        v.style.display = m==='visual'?'block':'none'; c.style.display = m==='code'?'block':'none';
+    }
+    i.addEventListener('input', render); render();
+</script></body></html>
